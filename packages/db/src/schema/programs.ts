@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, timestamp, jsonb, integer, boolean, index } from 'drizzle-orm/pg-core';
-import { organizations } from './organizations';
+import { organizations } from './organizations.js';
 
 /**
  * Programs table - courses, tracks, memberships
