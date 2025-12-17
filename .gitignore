@@ -6,7 +6,8 @@
 .vscode/
 
 # dependencies
-/node_modules
+node_modules/
+**/node_modules/
 
 # testing
 /coverage
@@ -37,3 +38,9 @@ dist/
 
 # Shadcn Registry
 public/r/
+
+# Turbo
+.turbo/
+
+# pnpm
+pnpm-lock.yaml

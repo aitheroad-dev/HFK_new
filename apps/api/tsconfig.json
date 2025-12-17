@@ -6,14 +6,11 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "declaration": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true
+    "resolveJsonModule": true
   },
-  "references": [
-    { "path": "./apps/api" },
-    { "path": "./apps/web" },
-    { "path": "./packages/db" },
-    { "path": "./packages/shared" }
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
