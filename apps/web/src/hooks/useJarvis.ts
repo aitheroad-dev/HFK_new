@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 export interface JarvisMessage {
   id: string;
@@ -35,10 +36,20 @@ export function useJarvis() {
   const reconnectTimeoutRef = useRef<number | null>(null);
 
   // Connect to WebSocket
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const wsUrl = API_URL.replace(/^http/, "ws") + "/chat";
+    // Get current session token for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    // Build WebSocket URL with optional auth token
+    let wsUrl = API_URL.replace(/^http/, "ws") + "/chat";
+    if (token) {
+      wsUrl += `?token=${encodeURIComponent(token)}`;
+    }
+
+    console.log("[JARVIS] Attempting to connect to:", wsUrl.split("?")[0]); // Don't log token
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {

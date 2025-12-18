@@ -10,7 +10,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useCreatePerson, useUpdatePerson, type Person } from "@/hooks/usePeople";
-import { DEFAULT_ORG_ID } from "@/lib/supabase";
 
 interface PersonFormProps {
   open: boolean;
@@ -46,8 +45,8 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
           phone: phone.trim() || null,
         });
       } else {
+        // Single-tenant: organization_id is handled by the hook
         await createPerson.mutateAsync({
-          organization_id: DEFAULT_ORG_ID,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           email: email.trim() || null,

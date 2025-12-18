@@ -39,12 +39,12 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
     <aside
       className={cn(
         "w-[22rem] bg-card border-l border-border transition-all duration-200",
-        "relative h-full",
+        "flex flex-col h-full",
         className
       )}
     >
       {/* Header - fixed at top */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 border-b border-border flex items-center gap-3 jarvis-gradient-subtle bg-card">
+      <div className="shrink-0 p-4 border-b border-border flex items-center gap-3 jarvis-gradient-subtle bg-card">
         <div className="w-9 h-9 jarvis-gradient rounded-md flex items-center justify-center text-white">
           <Layers className="w-[18px] h-[18px]" />
         </div>
@@ -83,8 +83,8 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
         </Button>
       </div>
 
-      {/* Chat Messages - scrollable area with padding for fixed header/footer */}
-      <div ref={messagesContainerRef} className="absolute top-[73px] bottom-[85px] left-0 right-0 overflow-y-auto p-4 flex flex-col gap-4">
+      {/* Chat Messages - scrollable area */}
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -132,7 +132,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
       </div>
 
       {/* Input Area - fixed at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card">
+      <div className="shrink-0 p-4 border-t border-border bg-card">
         {!isConnected && (
           <div className="mb-2 text-xs text-destructive text-center">
             Reconnecting to JARVIS...

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, DEFAULT_ORG_ID } from "@/lib/supabase";
+import { supabase, HKF_ORG_ID } from "@/lib/supabase";
 
 export interface Person {
   id: string;
@@ -21,20 +21,18 @@ export interface PersonWithEnrollment extends Person {
   cohort_name?: string;
   applied_at?: string;
   interview_date?: string;
-  notes?: string;
 }
 
 /**
- * Fetch all people for the current organization
+ * Fetch all people (single-tenant - no org filter needed)
  */
-export function usePeople(organizationId: string = DEFAULT_ORG_ID) {
+export function usePeople() {
   return useQuery({
-    queryKey: ["people", organizationId],
+    queryKey: ["people"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("people")
         .select("*")
-        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -46,69 +44,94 @@ export function usePeople(organizationId: string = DEFAULT_ORG_ID) {
 /**
  * Fetch people with their enrollment info
  */
-export function usePeopleWithEnrollments(organizationId: string = DEFAULT_ORG_ID) {
+export function usePeopleWithEnrollments() {
   return useQuery({
-    queryKey: ["people-enrollments", organizationId],
+    queryKey: ["people-enrollments"],
     queryFn: async () => {
       // First get people
       const { data: people, error: peopleError } = await supabase
         .from("people")
         .select("*")
-        .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
 
       if (peopleError) throw peopleError;
 
+      // If no people, return empty array early
+      if (!people || people.length === 0) {
+        return [] as PersonWithEnrollment[];
+      }
+
       // Then get enrollments with program and cohort info
-      const { data: enrollments, error: enrollmentsError } = await supabase
-        .from("enrollments")
-        .select(`
-          person_id,
-          status,
-          applied_at,
-          notes,
-          programs (
-            name
-          ),
-          cohorts (
-            name
-          )
-        `)
-        .eq("organization_id", organizationId);
+      let enrollmentMap = new Map<string, {
+        enrollment_status: string;
+        program_name?: string;
+        cohort_name?: string;
+        applied_at?: string;
+      }>();
 
-      if (enrollmentsError) throw enrollmentsError;
+      try {
+        const { data: enrollments, error: enrollmentsError } = await supabase
+          .from("enrollments")
+          .select(`
+            person_id,
+            status,
+            applied_at,
+            programs (
+              name
+            ),
+            cohorts (
+              name
+            )
+          `);
 
-      // Get interviews for these people
-      const personIds = people?.map(p => p.id) || [];
-      const { data: interviews } = await supabase
-        .from("interviews")
-        .select("person_id, scheduled_at")
-        .in("person_id", personIds)
-        .order("scheduled_at", { ascending: true });
+        if (enrollmentsError) {
+          console.error("Enrollments query error:", enrollmentsError);
+        }
 
-      const interviewMap = new Map(
-        interviews?.map((i) => [i.person_id, i.scheduled_at])
-      );
+        if (!enrollmentsError && enrollments) {
+          enrollmentMap = new Map(
+            enrollments.map((e) => [
+              e.person_id,
+              {
+                enrollment_status: e.status,
+                program_name: (e.programs as { name: string })?.name,
+                cohort_name: (e.cohorts as { name: string })?.name,
+                applied_at: e.applied_at,
+              },
+            ])
+          );
+        }
+      } catch (err) {
+        console.error("Enrollments fetch error:", err);
+        // Enrollments table may not exist yet
+      }
+
+      // Get interviews for these people (if any exist)
+      const personIds = people.map(p => p.id);
+      let interviewMap = new Map<string, string>();
+
+      try {
+        const { data: interviews } = await supabase
+          .from("interviews")
+          .select("person_id, scheduled_at")
+          .in("person_id", personIds)
+          .order("scheduled_at", { ascending: true });
+
+        interviewMap = new Map(
+          interviews?.map((i) => [i.person_id, i.scheduled_at]) || []
+        );
+      } catch {
+        // Interviews table may not exist yet
+      }
 
       // Merge the data
-      const enrollmentMap = new Map(
-        enrollments?.map((e) => [
-          e.person_id,
-          {
-            enrollment_status: e.status,
-            program_name: (e.programs as { name: string })?.name,
-            cohort_name: (e.cohorts as { name: string })?.name,
-            applied_at: e.applied_at,
-            notes: e.notes,
-          },
-        ])
-      );
-
-      return (people || []).map((person) => ({
+      const result = people.map((person) => ({
         ...person,
         ...enrollmentMap.get(person.id),
         interview_date: interviewMap.get(person.id),
       })) as PersonWithEnrollment[];
+
+      return result;
     },
   });
 }
@@ -143,11 +166,14 @@ export function useCreatePerson() {
 
   return useMutation({
     mutationFn: async (
-      newPerson: Omit<Person, "id" | "created_at" | "updated_at">
+      newPerson: Omit<Person, "id" | "organization_id" | "created_at" | "updated_at">
     ) => {
       const { data, error } = await supabase
         .from("people")
-        .insert(newPerson)
+        .insert({
+          ...newPerson,
+          organization_id: HKF_ORG_ID,
+        })
         .select()
         .single();
 

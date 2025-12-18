@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, DEFAULT_ORG_ID } from "@/lib/supabase";
+import { supabase, HKF_ORG_ID } from "@/lib/supabase";
 
 export interface Interview {
   id: string;
@@ -23,16 +23,15 @@ export interface InterviewWithDetails extends Interview {
 }
 
 /**
- * Fetch all interviews for the current organization
+ * Fetch all interviews (single-tenant - no org filter needed)
  */
-export function useInterviews(organizationId: string = DEFAULT_ORG_ID) {
+export function useInterviews() {
   return useQuery({
-    queryKey: ["interviews", organizationId],
+    queryKey: ["interviews"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("interviews")
         .select("*")
-        .eq("organization_id", organizationId)
         .order("scheduled_at", { ascending: true });
 
       if (error) throw error;
@@ -72,7 +71,6 @@ export function useScheduleInterview() {
   return useMutation({
     mutationFn: async (interview: {
       person_id: string;
-      organization_id?: string;
       scheduled_at: string;
       interviewer_id?: string | null;
       notes?: string | null;
@@ -81,7 +79,7 @@ export function useScheduleInterview() {
         .from("interviews")
         .insert({
           ...interview,
-          organization_id: interview.organization_id || DEFAULT_ORG_ID,
+          organization_id: HKF_ORG_ID,
           status: "scheduled",
           scores_breakdown: {},
         })

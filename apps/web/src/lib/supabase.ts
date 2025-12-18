@@ -7,6 +7,6 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-// Default organization ID for HKF
-// In production, this would come from auth context
-export const DEFAULT_ORG_ID = "2542c6fe-3707-4dd8-abc5-bc70feac7e81";
+// HKF Organization ID - Single tenant deployment
+// This is the only organization in this Supabase instance
+export const HKF_ORG_ID = "2542c6fe-3707-4dd8-abc5-bc70feac7e81";

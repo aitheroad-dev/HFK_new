@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
-import { db, people, programs, interviews, enrollments, payments } from '@generic-ai-crm/db';
-import { eq, and, ilike, or, gte, lte } from 'drizzle-orm';
+import { db, people, programs, interviews, enrollments, payments, events, eventRegistrations, escalations, communications } from '@generic-ai-crm/db';
+import { eq, and, ilike, or, gte, lte, sql, count } from 'drizzle-orm';
 
 /**
  * AI Tool definitions for JARVIS
@@ -136,6 +136,100 @@ export const getInterviewSchema = z.object({
   interviewId: z.string().uuid().describe('UUID of the interview to retrieve'),
 });
 
+// ============================================================================
+// NEW TOOL SCHEMAS (9 additional tools from AI Orchestration Spec)
+// ============================================================================
+
+export const sendBulkMessageSchema = z.object({
+  channel: z.enum(['email', 'whatsapp', 'sms']).describe('Communication channel'),
+  audienceFilter: z.object({
+    programIds: z.array(z.string().uuid()).optional().describe('Filter by program IDs'),
+    cohortIds: z.array(z.string().uuid()).optional().describe('Filter by cohort IDs'),
+    statuses: z.array(z.string()).optional().describe('Filter by person status'),
+    tags: z.array(z.string()).optional().describe('Filter by tags'),
+  }).describe('Audience targeting criteria'),
+  subject: z.string().optional().describe('Email subject (required for email channel)'),
+  message: z.string().describe('Message content - supports {{first_name}}, {{last_name}} variables'),
+  templateId: z.string().optional().describe('Optional template ID'),
+});
+
+export const createEventSchema = z.object({
+  name: z.string().describe('Event name'),
+  description: z.string().optional().describe('Event description'),
+  type: z.string().optional().describe('Event type (e.g., workshop, meeting, webinar)'),
+  startsAt: z.string().describe('ISO 8601 datetime for event start'),
+  endsAt: z.string().optional().describe('ISO 8601 datetime for event end'),
+  location: z.string().optional().describe('Physical location or "online"'),
+  locationUrl: z.string().optional().describe('Zoom/Meet link for online events'),
+  capacity: z.number().optional().describe('Maximum number of attendees'),
+  targetAudience: z.object({
+    programIds: z.array(z.string().uuid()).optional(),
+    cohortIds: z.array(z.string().uuid()).optional(),
+    statuses: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
+  }).optional().describe('Who should be invited'),
+});
+
+export const registerForEventSchema = z.object({
+  eventId: z.string().uuid().describe('UUID of the event'),
+  personId: z.string().uuid().describe('UUID of the person to register'),
+  guests: z.number().optional().describe('Number of additional guests (default: 0)'),
+  notes: z.string().optional().describe('Registration notes'),
+});
+
+export const checkInEventSchema = z.object({
+  eventId: z.string().uuid().describe('UUID of the event'),
+  personId: z.string().uuid().describe('UUID of the person to check in'),
+});
+
+export const createPaymentLinkSchema = z.object({
+  personId: z.string().uuid().describe('UUID of the person'),
+  amount: z.number().positive().describe('Amount in smallest currency unit (e.g., agorot for ILS)'),
+  currency: z.string().default('ILS').describe('Currency code'),
+  description: z.string().describe('Payment description shown to payer'),
+  programId: z.string().uuid().optional().describe('UUID of the program this payment is for'),
+  enrollmentId: z.string().uuid().optional().describe('UUID of the enrollment'),
+  allowInstallments: z.boolean().optional().describe('Allow payment in installments'),
+  maxInstallments: z.number().optional().describe('Maximum number of installments'),
+});
+
+export const createCalendarEventSchema = z.object({
+  title: z.string().describe('Calendar event title'),
+  description: z.string().optional().describe('Event description'),
+  startTime: z.string().describe('ISO 8601 start datetime'),
+  endTime: z.string().describe('ISO 8601 end datetime'),
+  location: z.string().optional().describe('Event location'),
+  attendeeEmails: z.array(z.string().email()).optional().describe('Email addresses to invite'),
+  attendeePersonIds: z.array(z.string().uuid()).optional().describe('Person IDs to invite (will lookup emails)'),
+});
+
+export const uploadFileSchema = z.object({
+  fileName: z.string().describe('Name for the uploaded file'),
+  fileType: z.string().describe('MIME type (e.g., application/pdf, image/jpeg)'),
+  folder: z.string().optional().describe('Folder path in storage (e.g., /documents/cvs)'),
+  personId: z.string().uuid().optional().describe('Associate file with a person'),
+  description: z.string().optional().describe('File description'),
+});
+
+export const escalateToHumanSchema = z.object({
+  reason: z.string().describe('Why this needs human attention'),
+  urgency: z.enum(['low', 'medium', 'high', 'critical']).default('medium').describe('Urgency level'),
+  personId: z.string().uuid().optional().describe('Related person ID'),
+  enrollmentId: z.string().uuid().optional().describe('Related enrollment ID'),
+  interviewId: z.string().uuid().optional().describe('Related interview ID'),
+  context: z.object({
+    lastMessage: z.string().optional(),
+    conversationSummary: z.string().optional(),
+    actionsTaken: z.array(z.string()).optional(),
+    suggestedActions: z.array(z.string()).optional(),
+  }).optional().describe('Additional context for the reviewer'),
+  assignTo: z.string().uuid().optional().describe('Specific staff member to assign to'),
+});
+
+export const calculateEngagementScoreSchema = z.object({
+  personId: z.string().uuid().describe('UUID of the person to calculate score for'),
+});
+
 // Type exports
 export type SearchPeopleInput = z.infer<typeof searchPeopleSchema>;
 export type GetPersonInput = z.infer<typeof getPersonSchema>;
@@ -153,6 +247,15 @@ export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>;
 export type ListPaymentsInput = z.infer<typeof listPaymentsSchema>;
 export type ListEnrollmentsInput = z.infer<typeof listEnrollmentsSchema>;
 export type GetInterviewInput = z.infer<typeof getInterviewSchema>;
+export type SendBulkMessageInput = z.infer<typeof sendBulkMessageSchema>;
+export type CreateEventInput = z.infer<typeof createEventSchema>;
+export type RegisterForEventInput = z.infer<typeof registerForEventSchema>;
+export type CheckInEventInput = z.infer<typeof checkInEventSchema>;
+export type CreatePaymentLinkInput = z.infer<typeof createPaymentLinkSchema>;
+export type CreateCalendarEventInput = z.infer<typeof createCalendarEventSchema>;
+export type UploadFileInput = z.infer<typeof uploadFileSchema>;
+export type EscalateToHumanInput = z.infer<typeof escalateToHumanSchema>;
+export type CalculateEngagementScoreInput = z.infer<typeof calculateEngagementScoreSchema>;
 
 // ============================================================================
 // Tool Definitions for Claude API
@@ -633,6 +736,185 @@ export function getToolDefinitions(): Tool[] {
           },
         },
         required: ['interviewId'],
+      },
+    },
+    // ========== NEW TOOLS (9 additional) ==========
+    {
+      name: 'send_bulk_message',
+      description: 'Send a message to multiple recipients filtered by audience criteria. Supports email, WhatsApp, or SMS. Use {{first_name}} and {{last_name}} for personalization.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          channel: {
+            type: 'string',
+            enum: ['email', 'whatsapp', 'sms'],
+            description: 'Communication channel',
+          },
+          audienceFilter: {
+            type: 'object',
+            properties: {
+              programIds: { type: 'array', items: { type: 'string' }, description: 'Filter by program IDs' },
+              cohortIds: { type: 'array', items: { type: 'string' }, description: 'Filter by cohort IDs' },
+              statuses: { type: 'array', items: { type: 'string' }, description: 'Filter by person status' },
+              tags: { type: 'array', items: { type: 'string' }, description: 'Filter by tags' },
+            },
+            description: 'Audience targeting criteria',
+          },
+          subject: {
+            type: 'string',
+            description: 'Email subject (required for email channel)',
+          },
+          message: {
+            type: 'string',
+            description: 'Message content - supports {{first_name}}, {{last_name}} variables',
+          },
+          templateId: {
+            type: 'string',
+            description: 'Optional template ID for predefined messages',
+          },
+        },
+        required: ['channel', 'audienceFilter', 'message'],
+      },
+    },
+    {
+      name: 'create_event',
+      description: 'Create a new event (workshop, meeting, webinar, etc.) with optional targeting criteria for invitations.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string', description: 'Event name' },
+          description: { type: 'string', description: 'Event description' },
+          type: { type: 'string', description: 'Event type (workshop, meeting, webinar, etc.)' },
+          startsAt: { type: 'string', description: 'ISO 8601 datetime for event start' },
+          endsAt: { type: 'string', description: 'ISO 8601 datetime for event end' },
+          location: { type: 'string', description: 'Physical location or "online"' },
+          locationUrl: { type: 'string', description: 'Zoom/Meet link for online events' },
+          capacity: { type: 'number', description: 'Maximum number of attendees' },
+          targetAudience: {
+            type: 'object',
+            properties: {
+              programIds: { type: 'array', items: { type: 'string' } },
+              cohortIds: { type: 'array', items: { type: 'string' } },
+              statuses: { type: 'array', items: { type: 'string' } },
+              tags: { type: 'array', items: { type: 'string' } },
+            },
+            description: 'Who should be invited to this event',
+          },
+        },
+        required: ['name', 'startsAt'],
+      },
+    },
+    {
+      name: 'register_for_event',
+      description: 'Register a person for an event. Checks capacity and handles waitlist if full.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          eventId: { type: 'string', description: 'UUID of the event' },
+          personId: { type: 'string', description: 'UUID of the person to register' },
+          guests: { type: 'number', description: 'Number of additional guests (default: 0)' },
+          notes: { type: 'string', description: 'Registration notes' },
+        },
+        required: ['eventId', 'personId'],
+      },
+    },
+    {
+      name: 'check_in_event',
+      description: 'Mark a person as attended at an event. Records check-in timestamp.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          eventId: { type: 'string', description: 'UUID of the event' },
+          personId: { type: 'string', description: 'UUID of the person to check in' },
+        },
+        required: ['eventId', 'personId'],
+      },
+    },
+    {
+      name: 'create_payment_link',
+      description: 'Generate a payment link for a person. Currently returns a stub - Meshulam integration coming soon.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          personId: { type: 'string', description: 'UUID of the person' },
+          amount: { type: 'number', description: 'Amount in smallest currency unit (agorot for ILS)' },
+          currency: { type: 'string', description: 'Currency code (default: ILS)' },
+          description: { type: 'string', description: 'Payment description shown to payer' },
+          programId: { type: 'string', description: 'UUID of the program this payment is for' },
+          enrollmentId: { type: 'string', description: 'UUID of the enrollment' },
+          allowInstallments: { type: 'boolean', description: 'Allow payment in installments' },
+          maxInstallments: { type: 'number', description: 'Maximum number of installments' },
+        },
+        required: ['personId', 'amount', 'description'],
+      },
+    },
+    {
+      name: 'create_calendar_event',
+      description: 'Create a Google Calendar event with attendees. Currently returns a stub - Google Calendar integration coming soon.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          title: { type: 'string', description: 'Calendar event title' },
+          description: { type: 'string', description: 'Event description' },
+          startTime: { type: 'string', description: 'ISO 8601 start datetime' },
+          endTime: { type: 'string', description: 'ISO 8601 end datetime' },
+          location: { type: 'string', description: 'Event location' },
+          attendeeEmails: { type: 'array', items: { type: 'string' }, description: 'Email addresses to invite' },
+          attendeePersonIds: { type: 'array', items: { type: 'string' }, description: 'Person IDs to invite' },
+        },
+        required: ['title', 'startTime', 'endTime'],
+      },
+    },
+    {
+      name: 'upload_file',
+      description: 'Upload a file to storage. Currently returns a stub - Supabase Storage integration coming soon.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          fileName: { type: 'string', description: 'Name for the uploaded file' },
+          fileType: { type: 'string', description: 'MIME type (application/pdf, image/jpeg, etc.)' },
+          folder: { type: 'string', description: 'Folder path in storage' },
+          personId: { type: 'string', description: 'Associate file with a person' },
+          description: { type: 'string', description: 'File description' },
+        },
+        required: ['fileName', 'fileType'],
+      },
+    },
+    {
+      name: 'escalate_to_human',
+      description: 'Flag a situation for human review. Use this when you cannot handle something, need approval, or encounter sensitive situations.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          reason: { type: 'string', description: 'Why this needs human attention' },
+          urgency: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Urgency level' },
+          personId: { type: 'string', description: 'Related person ID' },
+          enrollmentId: { type: 'string', description: 'Related enrollment ID' },
+          interviewId: { type: 'string', description: 'Related interview ID' },
+          context: {
+            type: 'object',
+            properties: {
+              lastMessage: { type: 'string' },
+              conversationSummary: { type: 'string' },
+              actionsTaken: { type: 'array', items: { type: 'string' } },
+              suggestedActions: { type: 'array', items: { type: 'string' } },
+            },
+            description: 'Additional context for the reviewer',
+          },
+          assignTo: { type: 'string', description: 'Specific staff member UUID to assign to' },
+        },
+        required: ['reason'],
+      },
+    },
+    {
+      name: 'calculate_engagement_score',
+      description: 'Calculate engagement score for a person based on their activity: events attended, communications, payments, program participation.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          personId: { type: 'string', description: 'UUID of the person to calculate score for' },
+        },
+        required: ['personId'],
       },
     },
   ];
@@ -1268,6 +1550,510 @@ async function handleGetInterview(input: GetInterviewInput, organizationId: stri
 }
 
 // ============================================================================
+// NEW TOOL HANDLERS (9 additional tools)
+// ============================================================================
+
+async function handleSendBulkMessage(input: SendBulkMessageInput, organizationId: string) {
+  const { channel, audienceFilter, subject, message } = input;
+
+  // Build query conditions based on audience filter
+  const conditions = [eq(people.organizationId, organizationId)];
+
+  if (audienceFilter.statuses && audienceFilter.statuses.length > 0) {
+    // Filter by any of the specified statuses
+    conditions.push(
+      or(...audienceFilter.statuses.map(s => eq(people.status, s as 'active' | 'inactive' | 'pending' | 'archived')))!
+    );
+  }
+
+  if (audienceFilter.tags && audienceFilter.tags.length > 0) {
+    // Filter by tags (person must have at least one of the tags)
+    // Using SQL array overlap operator
+    conditions.push(
+      sql`${people.tags} && ARRAY[${sql.join(audienceFilter.tags.map(t => sql`${t}`), sql`, `)}]::text[]`
+    );
+  }
+
+  // Get matching people
+  let recipients = await db
+    .select()
+    .from(people)
+    .where(and(...conditions))
+    .limit(1000); // Safety limit
+
+  // If program filter specified, filter by enrollment
+  if (audienceFilter.programIds && audienceFilter.programIds.length > 0) {
+    const enrolledPeople = await db
+      .select({ personId: enrollments.personId })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.organizationId, organizationId),
+          or(...audienceFilter.programIds.map(pid => eq(enrollments.programId, pid)))!
+        )
+      );
+
+    const enrolledIds = new Set(enrolledPeople.map(e => e.personId));
+    recipients = recipients.filter(p => enrolledIds.has(p.id));
+  }
+
+  // Log each communication (but don't actually send - integration pending)
+  const communicationLogs = [];
+  for (const person of recipients) {
+    // Personalize message
+    const personalizedMessage = message
+      .replace(/\{\{first_name\}\}/g, person.firstName)
+      .replace(/\{\{last_name\}\}/g, person.lastName);
+
+    // Insert communication log
+    const log = await db
+      .insert(communications)
+      .values({
+        organizationId,
+        personId: person.id,
+        channel,
+        direction: 'outbound',
+        subject: subject || null,
+        message: personalizedMessage,
+        status: 'queued',
+      })
+      .returning();
+
+    communicationLogs.push({
+      personId: person.id,
+      name: `${person.firstName} ${person.lastName}`,
+      communicationId: log[0].id,
+    });
+  }
+
+  return {
+    success: true,
+    message: `Bulk message queued for ${recipients.length} recipients via ${channel}`,
+    recipientCount: recipients.length,
+    communications: communicationLogs.slice(0, 10), // Return first 10 for preview
+    note: 'Messaging adapter not yet configured. Messages logged but not sent.',
+  };
+}
+
+async function handleCreateEvent(input: CreateEventInput, organizationId: string) {
+  const { name, description, type, startsAt, endsAt, location, locationUrl, capacity, targetAudience } = input;
+
+  const result = await db
+    .insert(events)
+    .values({
+      organizationId,
+      name,
+      description,
+      type,
+      startsAt: new Date(startsAt),
+      endsAt: endsAt ? new Date(endsAt) : null,
+      location,
+      locationUrl,
+      capacity,
+      targetAudience: targetAudience || {},
+      status: 'draft',
+    })
+    .returning();
+
+  return {
+    success: true,
+    message: `Event "${name}" created`,
+    event: result[0],
+  };
+}
+
+async function handleRegisterForEvent(input: RegisterForEventInput, organizationId: string) {
+  const { eventId, personId, guests = 0, notes } = input;
+
+  // Verify event exists
+  const eventResult = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.id, eventId), eq(events.organizationId, organizationId)))
+    .limit(1);
+
+  if (eventResult.length === 0) {
+    return { error: 'Event not found', eventId };
+  }
+
+  const event = eventResult[0];
+
+  // Verify person exists
+  const personResult = await db
+    .select()
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.organizationId, organizationId)))
+    .limit(1);
+
+  if (personResult.length === 0) {
+    return { error: 'Person not found', personId };
+  }
+
+  const person = personResult[0];
+
+  // Check if already registered
+  const existingReg = await db
+    .select()
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.personId, personId)
+      )
+    )
+    .limit(1);
+
+  if (existingReg.length > 0) {
+    return { error: 'Person already registered for this event', registrationId: existingReg[0].id };
+  }
+
+  // Check capacity
+  let status: 'registered' | 'waitlisted' = 'registered';
+  if (event.capacity && event.registrationCount !== null && event.registrationCount >= event.capacity) {
+    status = 'waitlisted';
+  }
+
+  // Create registration
+  const result = await db
+    .insert(eventRegistrations)
+    .values({
+      organizationId,
+      eventId,
+      personId,
+      status,
+      guests,
+      notes,
+    })
+    .returning();
+
+  // Update registration count
+  await db
+    .update(events)
+    .set({
+      registrationCount: sql`${events.registrationCount} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(events.id, eventId));
+
+  return {
+    success: true,
+    message: status === 'waitlisted'
+      ? `${person.firstName} ${person.lastName} added to waitlist for "${event.name}"`
+      : `${person.firstName} ${person.lastName} registered for "${event.name}"`,
+    registration: result[0],
+  };
+}
+
+async function handleCheckInEvent(input: CheckInEventInput, organizationId: string) {
+  const { eventId, personId } = input;
+
+  // Find the registration
+  const regResult = await db
+    .select()
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.eventId, eventId),
+        eq(eventRegistrations.personId, personId),
+        eq(eventRegistrations.organizationId, organizationId)
+      )
+    )
+    .limit(1);
+
+  if (regResult.length === 0) {
+    return { error: 'Registration not found for this person and event', eventId, personId };
+  }
+
+  const registration = regResult[0];
+
+  if (registration.checkedInAt) {
+    return {
+      error: 'Person already checked in',
+      checkedInAt: registration.checkedInAt
+    };
+  }
+
+  // Update registration with check-in
+  const result = await db
+    .update(eventRegistrations)
+    .set({
+      status: 'attended',
+      checkedInAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(eventRegistrations.id, registration.id))
+    .returning();
+
+  // Get person name for response
+  const personResult = await db
+    .select()
+    .from(people)
+    .where(eq(people.id, personId))
+    .limit(1);
+
+  const person = personResult[0];
+
+  return {
+    success: true,
+    message: `${person?.firstName} ${person?.lastName} checked in`,
+    registration: result[0],
+  };
+}
+
+async function handleCreatePaymentLink(input: CreatePaymentLinkInput, organizationId: string) {
+  const { personId, amount, currency = 'ILS', description, programId, enrollmentId, allowInstallments, maxInstallments } = input;
+
+  // Verify person exists
+  const personResult = await db
+    .select()
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.organizationId, organizationId)))
+    .limit(1);
+
+  if (personResult.length === 0) {
+    return { error: 'Person not found', personId };
+  }
+
+  const person = personResult[0];
+  const formattedAmount = (amount / 100).toFixed(2);
+
+  // TODO: Integrate with Meshulam API to generate actual payment link
+  // For now, return a stub response
+  return {
+    success: true,
+    message: `Payment link generated for ${person.firstName} ${person.lastName}`,
+    paymentLink: {
+      url: `https://meshulam.example.com/pay/${organizationId}/${personId}?amount=${amount}`,
+      amount,
+      formattedAmount: `${formattedAmount} ${currency}`,
+      currency,
+      description,
+      personId,
+      programId: programId || null,
+      enrollmentId: enrollmentId || null,
+      allowInstallments: allowInstallments || false,
+      maxInstallments: maxInstallments || 1,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      status: 'pending_integration',
+      note: 'Meshulam adapter not yet configured. This is a placeholder link.',
+    },
+  };
+}
+
+async function handleCreateCalendarEvent(input: CreateCalendarEventInput, organizationId: string) {
+  const { title, description, startTime, endTime, location, attendeeEmails = [], attendeePersonIds = [] } = input;
+
+  // Lookup emails for person IDs
+  const additionalEmails: string[] = [];
+  if (attendeePersonIds.length > 0) {
+    const peopleResult = await db
+      .select({ email: people.email })
+      .from(people)
+      .where(
+        and(
+          eq(people.organizationId, organizationId),
+          or(...attendeePersonIds.map(pid => eq(people.id, pid)))!
+        )
+      );
+
+    additionalEmails.push(...peopleResult.filter(p => p.email).map(p => p.email!));
+  }
+
+  const allAttendees = [...new Set([...attendeeEmails, ...additionalEmails])];
+
+  // TODO: Integrate with Google Calendar API
+  // For now, return a stub response
+  return {
+    success: true,
+    message: `Calendar event "${title}" created`,
+    calendarEvent: {
+      id: `cal_${Date.now()}`,
+      title,
+      description: description || null,
+      startTime,
+      endTime,
+      location: location || null,
+      attendees: allAttendees,
+      status: 'pending_integration',
+      note: 'Google Calendar adapter not yet configured. Event not actually created.',
+    },
+  };
+}
+
+async function handleUploadFile(input: UploadFileInput, organizationId: string) {
+  const { fileName, fileType, folder = '/uploads', personId, description } = input;
+
+  // TODO: Integrate with Supabase Storage
+  // For now, return a stub response with a placeholder URL
+  const fileId = `file_${Date.now()}`;
+  const filePath = `${organizationId}${folder}/${fileId}_${fileName}`;
+
+  return {
+    success: true,
+    message: `File "${fileName}" upload prepared`,
+    file: {
+      id: fileId,
+      fileName,
+      fileType,
+      filePath,
+      url: `https://storage.example.com/${filePath}`,
+      folder,
+      personId: personId || null,
+      description: description || null,
+      status: 'pending_integration',
+      note: 'Supabase Storage adapter not yet configured. Use the returned upload URL to upload file content.',
+      uploadUrl: `https://api.example.com/upload/${fileId}`,
+    },
+  };
+}
+
+async function handleEscalateToHuman(input: EscalateToHumanInput, organizationId: string) {
+  const { reason, urgency = 'medium', personId, enrollmentId, interviewId, context, assignTo } = input;
+
+  // Create escalation record
+  const result = await db
+    .insert(escalations)
+    .values({
+      organizationId,
+      reason,
+      urgency,
+      personId: personId || null,
+      enrollmentId: enrollmentId || null,
+      interviewId: interviewId || null,
+      context: context || {},
+      assignedTo: assignTo || null,
+      assignedAt: assignTo ? new Date() : null,
+      status: 'open',
+      source: 'ai_agent',
+    })
+    .returning();
+
+  // Get person details if personId provided
+  let personName = null;
+  if (personId) {
+    const personResult = await db
+      .select()
+      .from(people)
+      .where(eq(people.id, personId))
+      .limit(1);
+
+    if (personResult.length > 0) {
+      personName = `${personResult[0].firstName} ${personResult[0].lastName}`;
+    }
+  }
+
+  return {
+    success: true,
+    message: `Escalation created: ${reason}`,
+    escalation: {
+      id: result[0].id,
+      reason,
+      urgency,
+      status: 'open',
+      personName,
+      createdAt: result[0].createdAt,
+    },
+    note: 'This situation has been flagged for human review. A staff member will handle it.',
+  };
+}
+
+async function handleCalculateEngagementScore(input: CalculateEngagementScoreInput, organizationId: string) {
+  const { personId } = input;
+
+  // Verify person exists
+  const personResult = await db
+    .select()
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.organizationId, organizationId)))
+    .limit(1);
+
+  if (personResult.length === 0) {
+    return { error: 'Person not found', personId };
+  }
+
+  const person = personResult[0];
+
+  // Count enrollments
+  const enrollmentCount = await db
+    .select({ count: count() })
+    .from(enrollments)
+    .where(and(eq(enrollments.personId, personId), eq(enrollments.organizationId, organizationId)));
+
+  // Count completed enrollments
+  const completedCount = await db
+    .select({ count: count() })
+    .from(enrollments)
+    .where(
+      and(
+        eq(enrollments.personId, personId),
+        eq(enrollments.organizationId, organizationId),
+        eq(enrollments.status, 'completed')
+      )
+    );
+
+  // Count payments
+  const paymentCount = await db
+    .select({ count: count() })
+    .from(payments)
+    .where(
+      and(
+        eq(payments.personId, personId),
+        eq(payments.organizationId, organizationId),
+        eq(payments.status, 'completed')
+      )
+    );
+
+  // Count event attendances
+  const eventCount = await db
+    .select({ count: count() })
+    .from(eventRegistrations)
+    .where(
+      and(
+        eq(eventRegistrations.personId, personId),
+        eq(eventRegistrations.organizationId, organizationId),
+        eq(eventRegistrations.status, 'attended')
+      )
+    );
+
+  // Calculate score (simple weighted formula)
+  const scores = {
+    enrollments: Number(enrollmentCount[0]?.count || 0) * 10,
+    completions: Number(completedCount[0]?.count || 0) * 20,
+    payments: Number(paymentCount[0]?.count || 0) * 15,
+    events: Number(eventCount[0]?.count || 0) * 5,
+  };
+
+  const totalScore = scores.enrollments + scores.completions + scores.payments + scores.events;
+
+  // Determine engagement level
+  let level: 'low' | 'medium' | 'high' | 'champion';
+  if (totalScore >= 100) level = 'champion';
+  else if (totalScore >= 50) level = 'high';
+  else if (totalScore >= 20) level = 'medium';
+  else level = 'low';
+
+  return {
+    success: true,
+    person: {
+      id: person.id,
+      name: `${person.firstName} ${person.lastName}`,
+    },
+    engagementScore: {
+      total: totalScore,
+      level,
+      breakdown: scores,
+      metrics: {
+        totalEnrollments: Number(enrollmentCount[0]?.count || 0),
+        completedPrograms: Number(completedCount[0]?.count || 0),
+        paymentsCompleted: Number(paymentCount[0]?.count || 0),
+        eventsAttended: Number(eventCount[0]?.count || 0),
+      },
+    },
+    calculatedAt: new Date().toISOString(),
+  };
+}
+
+// ============================================================================
 // Tool Execution Router
 // ============================================================================
 
@@ -1287,7 +2073,17 @@ export type ToolName =
   | 'record_payment'
   | 'list_payments'
   | 'list_enrollments'
-  | 'get_interview';
+  | 'get_interview'
+  // New tools
+  | 'send_bulk_message'
+  | 'create_event'
+  | 'register_for_event'
+  | 'check_in_event'
+  | 'create_payment_link'
+  | 'create_calendar_event'
+  | 'upload_file'
+  | 'escalate_to_human'
+  | 'calculate_engagement_score';
 
 export async function executeToolCall(
   toolName: ToolName,
@@ -1358,6 +2154,43 @@ export async function executeToolCall(
     case 'get_interview': {
       const validated = getInterviewSchema.parse(input);
       return handleGetInterview(validated, organizationId);
+    }
+    // ========== NEW TOOLS ==========
+    case 'send_bulk_message': {
+      const validated = sendBulkMessageSchema.parse(input);
+      return handleSendBulkMessage(validated, organizationId);
+    }
+    case 'create_event': {
+      const validated = createEventSchema.parse(input);
+      return handleCreateEvent(validated, organizationId);
+    }
+    case 'register_for_event': {
+      const validated = registerForEventSchema.parse(input);
+      return handleRegisterForEvent(validated, organizationId);
+    }
+    case 'check_in_event': {
+      const validated = checkInEventSchema.parse(input);
+      return handleCheckInEvent(validated, organizationId);
+    }
+    case 'create_payment_link': {
+      const validated = createPaymentLinkSchema.parse(input);
+      return handleCreatePaymentLink(validated, organizationId);
+    }
+    case 'create_calendar_event': {
+      const validated = createCalendarEventSchema.parse(input);
+      return handleCreateCalendarEvent(validated, organizationId);
+    }
+    case 'upload_file': {
+      const validated = uploadFileSchema.parse(input);
+      return handleUploadFile(validated, organizationId);
+    }
+    case 'escalate_to_human': {
+      const validated = escalateToHumanSchema.parse(input);
+      return handleEscalateToHuman(validated, organizationId);
+    }
+    case 'calculate_engagement_score': {
+      const validated = calculateEngagementScoreSchema.parse(input);
+      return handleCalculateEngagementScore(validated, organizationId);
     }
     default:
       throw new Error(`Unknown tool: ${toolName}`);

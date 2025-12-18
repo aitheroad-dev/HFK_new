@@ -10,7 +10,6 @@ import {
   Mail,
   Settings,
   Search,
-  Bell,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +39,8 @@ interface AppLayoutProps {
   children: ReactNode;
   currentPage?: Page;
   onNavigate?: (page: Page) => void;
+  onSearch?: (query: string) => void;
+  searchQuery?: string;
 }
 
 const navigationItems = {
@@ -59,7 +60,7 @@ const navigationItems = {
   ],
 };
 
-export function AppLayout({ children, currentPage = "dashboard", onNavigate }: AppLayoutProps) {
+export function AppLayout({ children, currentPage = "dashboard", onNavigate, onSearch, searchQuery = "" }: AppLayoutProps) {
   const [isJarvisOpen, setIsJarvisOpen] = useState(true);
   const { user, signOut } = useAuth();
 
@@ -77,7 +78,7 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate }: A
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         {/* Sidebar */}
         <Sidebar>
           <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
@@ -109,11 +110,11 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate }: A
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>Programs</SidebarGroupLabel>
+              <SidebarGroupLabel>Programs <span className="text-xs text-muted-foreground ml-1">(Coming Soon)</span></SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.programs.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton>
+                    <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
@@ -123,16 +124,16 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate }: A
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>Operations</SidebarGroupLabel>
+              <SidebarGroupLabel>Operations <span className="text-xs text-muted-foreground ml-1">(Coming Soon)</span></SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.operations.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton>
+                    <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                     {item.badge && (
-                      <SidebarMenuBadge className="bg-accent text-accent-foreground">
+                      <SidebarMenuBadge className="bg-muted text-muted-foreground">
                         {item.badge}
                       </SidebarMenuBadge>
                     )}
@@ -145,9 +146,10 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate }: A
           <SidebarFooter className="border-t border-sidebar-border">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
                   <Settings className="w-4 h-4" />
                   <span>Settings</span>
+                  <span className="text-xs text-muted-foreground ml-auto">Soon</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -163,13 +165,17 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate }: A
               <Input
                 placeholder="Search candidates, programs..."
                 className="border-none shadow-none focus-visible:ring-0 bg-transparent"
+                value={searchQuery}
+                onChange={(e) => onSearch?.(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQuery && currentPage !== "people") {
+                    onNavigate?.("people");
+                  }
+                }}
               />
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              <Button variant="ghost" size="icon">
-                <Bell className="w-4 h-4" />
-              </Button>
               <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>

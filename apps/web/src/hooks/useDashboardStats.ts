@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase, DEFAULT_ORG_ID } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export interface DashboardStats {
   totalPeople: number;
@@ -13,37 +13,33 @@ export interface DashboardStats {
 }
 
 /**
- * Fetch dashboard statistics
+ * Fetch dashboard statistics (single-tenant - no org filter needed)
  */
-export function useDashboardStats(organizationId: string = DEFAULT_ORG_ID) {
+export function useDashboardStats() {
   return useQuery({
-    queryKey: ["dashboard-stats", organizationId],
+    queryKey: ["dashboard-stats"],
     queryFn: async () => {
       // Get total people count
       const { count: totalPeople } = await supabase
         .from("people")
-        .select("*", { count: "exact", head: true })
-        .eq("organization_id", organizationId);
+        .select("*", { count: "exact", head: true });
 
       // Get pending interviews count
       const { count: pendingInterviews } = await supabase
         .from("interviews")
         .select("*", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
         .eq("status", "scheduled");
 
       // Get accepted enrollments count
       const { count: acceptedCount } = await supabase
         .from("enrollments")
         .select("*", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
         .eq("status", "accepted");
 
       // Get total payments amount
       const { data: payments } = await supabase
         .from("payments")
         .select("amount")
-        .eq("organization_id", organizationId)
         .eq("status", "completed");
 
       const totalPayments = (payments || []).reduce(
@@ -58,7 +54,6 @@ export function useDashboardStats(organizationId: string = DEFAULT_ORG_ID) {
       const { count: newThisWeek } = await supabase
         .from("people")
         .select("*", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
         .gte("created_at", weekAgo.toISOString());
 
       // Get interviews scheduled for today
@@ -69,7 +64,6 @@ export function useDashboardStats(organizationId: string = DEFAULT_ORG_ID) {
       const { count: interviewsToday } = await supabase
         .from("interviews")
         .select("*", { count: "exact", head: true })
-        .eq("organization_id", organizationId)
         .eq("status", "scheduled")
         .gte("scheduled_at", startOfDay)
         .lte("scheduled_at", endOfDay);

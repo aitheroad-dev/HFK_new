@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, DEFAULT_ORG_ID } from "@/lib/supabase";
+import { supabase, HKF_ORG_ID } from "@/lib/supabase";
 
 export type EnrollmentStatus =
   | "applied"
@@ -144,4 +144,66 @@ export function useRejectCandidate() {
       });
     },
   };
+}
+
+/**
+ * Update enrollment notes for a person
+ */
+export function useUpdateEnrollmentNotes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      personId,
+      notes,
+    }: {
+      personId: string;
+      notes: string;
+    }) => {
+      // Find the enrollment for this person
+      const { data: enrollment, error: findError } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("person_id", personId)
+        .single();
+
+      if (findError) {
+        // No enrollment exists - create one with default values
+        const { data: newEnrollment, error: createError } = await supabase
+          .from("enrollments")
+          .insert({
+            organization_id: HKF_ORG_ID,
+            person_id: personId,
+            program_id: "00000000-0000-0000-0000-000000000000", // Placeholder - will need real program
+            status: "applied",
+            applied_at: new Date().toISOString(),
+            notes,
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        return newEnrollment as Enrollment;
+      }
+
+      // Update the enrollment notes
+      const { data, error } = await supabase
+        .from("enrollments")
+        .update({
+          notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", enrollment.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Enrollment;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["people"] });
+      queryClient.invalidateQueries({ queryKey: ["people-enrollments"] });
+      queryClient.invalidateQueries({ queryKey: ["person", variables.personId] });
+    },
+  });
 }

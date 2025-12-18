@@ -82,7 +82,7 @@ Guidelines:
 
     // Call Claude
     let response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 4096,
       system: this.systemPrompt,
       tools,
@@ -156,7 +156,7 @@ Guidelines:
 
       // Continue conversation with tool results
       response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 4096,
         system: this.systemPrompt,
         tools,
@@ -201,17 +201,102 @@ Guidelines:
 }
 
 /**
- * Session manager - maintains multiple conversation sessions
+ * Session with metadata for TTL tracking
+ */
+interface SessionEntry {
+  session: ConversationSession;
+  lastAccessed: number;
+  createdAt: number;
+}
+
+/**
+ * Session manager - maintains multiple conversation sessions with TTL cleanup
  */
 class SessionManager {
-  private sessions: Map<string, ConversationSession> = new Map();
+  private sessions: Map<string, SessionEntry> = new Map();
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Session expires after 24 hours of inactivity
+  private readonly SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  // Run cleanup every hour
+  private readonly CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+  // Maximum sessions to prevent memory exhaustion
+  private readonly MAX_SESSIONS = 1000;
+
+  constructor() {
+    // Start periodic cleanup
+    this.startCleanup();
+  }
+
+  private startCleanup(): void {
+    if (this.cleanupInterval) return;
+
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredSessions();
+    }, this.CLEANUP_INTERVAL_MS);
+
+    // Don't prevent Node from exiting
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
+
+    console.log('[SessionManager] Started session cleanup (24h TTL, hourly check)');
+  }
+
+  private cleanupExpiredSessions(): void {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [sessionId, entry] of this.sessions.entries()) {
+      if (now - entry.lastAccessed > this.SESSION_TTL_MS) {
+        this.sessions.delete(sessionId);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`[SessionManager] Cleaned up ${cleaned} expired sessions. Active: ${this.sessions.size}`);
+    }
+  }
 
   getOrCreateSession(sessionId: string, organizationId: string): ConversationSession {
-    let session = this.sessions.get(sessionId);
-    if (!session) {
-      session = new ConversationSession(organizationId);
-      this.sessions.set(sessionId, session);
+    const existing = this.sessions.get(sessionId);
+
+    if (existing) {
+      // Update last accessed time
+      existing.lastAccessed = Date.now();
+      return existing.session;
     }
+
+    // Check if we're at capacity
+    if (this.sessions.size >= this.MAX_SESSIONS) {
+      // Remove oldest session
+      let oldestId: string | null = null;
+      let oldestTime = Infinity;
+
+      for (const [id, entry] of this.sessions.entries()) {
+        if (entry.lastAccessed < oldestTime) {
+          oldestTime = entry.lastAccessed;
+          oldestId = id;
+        }
+      }
+
+      if (oldestId) {
+        this.sessions.delete(oldestId);
+        console.log(`[SessionManager] Evicted oldest session to make room (max: ${this.MAX_SESSIONS})`);
+      }
+    }
+
+    // Create new session
+    const session = new ConversationSession(organizationId);
+    const now = Date.now();
+
+    this.sessions.set(sessionId, {
+      session,
+      lastAccessed: now,
+      createdAt: now,
+    });
+
     return session;
   }
 
@@ -221,6 +306,27 @@ class SessionManager {
 
   hasSession(sessionId: string): boolean {
     return this.sessions.has(sessionId);
+  }
+
+  /**
+   * Get session stats for monitoring
+   */
+  getStats(): { active: number; maxSessions: number; ttlHours: number } {
+    return {
+      active: this.sessions.size,
+      maxSessions: this.MAX_SESSIONS,
+      ttlHours: this.SESSION_TTL_MS / (60 * 60 * 1000),
+    };
+  }
+
+  /**
+   * Stop cleanup interval (for graceful shutdown)
+   */
+  stopCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
   }
 }
 

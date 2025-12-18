@@ -59,11 +59,12 @@ function formatDate(dateString: string | null | undefined): string {
 
 interface PeopleProps {
   onSelectPerson?: (person: PersonWithEnrollment) => void;
+  initialSearch?: string;
 }
 
-export function People({ onSelectPerson }: PeopleProps) {
+export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
   const { data: people, isLoading } = usePeopleWithEnrollments();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -101,6 +102,32 @@ export function People({ onSelectPerson }: PeopleProps) {
     );
   };
 
+  // Export people to CSV
+  const handleExport = () => {
+    const dataToExport = filteredPeople.length > 0 ? filteredPeople : people;
+    if (!dataToExport || dataToExport.length === 0) return;
+
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Status", "Program", "Applied Date"];
+    const csvContent = [
+      headers.join(","),
+      ...dataToExport.map((p) => [
+        p.first_name,
+        p.last_name,
+        p.email || "",
+        p.phone || "",
+        p.enrollment_status || p.status,
+        p.program_name || "",
+        p.applied_at || p.created_at || "",
+      ].map(field => `"${field}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `people_export_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -112,7 +139,7 @@ export function People({ onSelectPerson }: PeopleProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>

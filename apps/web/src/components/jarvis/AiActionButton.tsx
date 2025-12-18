@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface AiActionButtonProps {
   label: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   className?: string;
 }
 

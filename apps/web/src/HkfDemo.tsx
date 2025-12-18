@@ -49,9 +49,11 @@ interface AuthenticatedAppProps {
   onEditPerson: (person: Person | null) => void;
   isAddFormOpen: boolean;
   onSetAddFormOpen: (open: boolean) => void;
+  globalSearch: string;
+  onGlobalSearchChange: (query: string) => void;
 }
 
-function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPerson, editingPerson, onEditPerson, isAddFormOpen, onSetAddFormOpen }: AuthenticatedAppProps) {
+function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPerson, editingPerson, onEditPerson, isAddFormOpen, onSetAddFormOpen, globalSearch, onGlobalSearchChange }: AuthenticatedAppProps) {
   const deletePerson = useDeletePerson();
   const [schedulingPerson, setSchedulingPerson] = useState<PersonWithEnrollment | null>(null);
   const [feedbackPerson, setFeedbackPerson] = useState<PersonWithEnrollment | null>(null);
@@ -71,16 +73,17 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
   };
 
   return (
-    <AppLayout currentPage={currentPage} onNavigate={onNavigate}>
+    <AppLayout currentPage={currentPage} onNavigate={onNavigate} onSearch={onGlobalSearchChange} searchQuery={globalSearch}>
       <div className="flex h-full">
         <div className="flex-1">
           {currentPage === "dashboard" && (
             <Dashboard
               onViewPeople={() => onNavigate("people")}
               onAddPerson={() => onSetAddFormOpen(true)}
+              onSelectPerson={onSelectPerson}
             />
           )}
-          {currentPage === "people" && <People onSelectPerson={onSelectPerson} />}
+          {currentPage === "people" && <People onSelectPerson={onSelectPerson} initialSearch={globalSearch} />}
         </div>
         {selectedPerson && (
           <PersonDetail
@@ -147,6 +150,7 @@ function AppContent() {
   const [selectedPerson, setSelectedPerson] = useState<PersonWithEnrollment | null>(null);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
 
   if (auth.isLoading) {
     return <LoadingScreen />;
@@ -164,6 +168,8 @@ function AppContent() {
           onEditPerson={setEditingPerson}
           isAddFormOpen={isAddFormOpen}
           onSetAddFormOpen={setIsAddFormOpen}
+          globalSearch={globalSearch}
+          onGlobalSearchChange={setGlobalSearch}
         />
       ) : (
         <Login />

@@ -81,9 +81,16 @@ async function mergeContacts(
   userId: string,
 ) {
   try {
+    // SECURITY: Validate userId is a valid UUID format to prevent SQL injection
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      throw new Error('Invalid user ID format');
+    }
+
     return await db.transaction().execute(async (trx) => {
       // Enable RLS by switching to authenticated role and setting user context
       await trx.executeQuery(CompiledQuery.raw("SET LOCAL ROLE authenticated"));
+      // SECURITY FIX: userId is validated as UUID above, safe to use in query
       await trx.executeQuery(
         CompiledQuery.raw(
           `SELECT set_config('request.jwt.claim.sub', '${userId}', true)`,

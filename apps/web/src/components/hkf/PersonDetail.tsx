@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { X, Mail, Phone, Calendar as CalendarIcon, FileText, Edit2, Trash2, UserPlus, ClipboardCheck, Scale } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Mail, Phone, Calendar as CalendarIcon, FileText, Edit2, Trash2, UserPlus, ClipboardCheck, Scale, Plus, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { PersonWithEnrollment } from "@/hooks/usePeople";
+import { useUpdateEnrollmentNotes } from "@/hooks/useEnrollments";
 
 const statusVariants: Record<string, string> = {
   applied: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -66,7 +68,27 @@ interface PersonDetailProps {
 
 export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInterview, onSubmitFeedback, onMakeDecision, isDeleting, className }: PersonDetailProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState(person.notes || "");
+  const updateNotes = useUpdateEnrollmentNotes();
   const displayStatus = person.enrollment_status || person.status;
+
+  // Reset notes value when person changes
+  useEffect(() => {
+    setNotesValue(person.notes || "");
+    setIsEditingNotes(false);
+  }, [person.id, person.notes]);
+
+  const handleSaveNotes = () => {
+    updateNotes.mutate(
+      { personId: person.id, notes: notesValue },
+      {
+        onSuccess: () => {
+          setIsEditingNotes(false);
+        },
+      }
+    );
+  };
 
   const handleDelete = () => {
     onDelete?.(person.id);
@@ -289,10 +311,70 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
             </div>
           </TabsContent>
 
-          <TabsContent value="notes" className="p-4">
-            <div className="text-sm text-muted-foreground">
-              {person.notes || "No notes yet. Add a note to keep track of important information."}
-            </div>
+          <TabsContent value="notes" className="p-4 space-y-4">
+            {isEditingNotes ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={notesValue}
+                  onChange={(e) => setNotesValue(e.target.value)}
+                  placeholder="Add notes about this person..."
+                  className="min-h-[150px] resize-none"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveNotes}
+                    disabled={updateNotes.isPending}
+                  >
+                    {updateNotes.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setNotesValue(person.notes || "");
+                      setIsEditingNotes(false);
+                    }}
+                    disabled={updateNotes.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {person.notes ? (
+                  <div className="text-sm whitespace-pre-wrap">{person.notes}</div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No notes yet. Add a note to keep track of important information.
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsEditingNotes(true)}
+                >
+                  {person.notes ? (
+                    <>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Note
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Note
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

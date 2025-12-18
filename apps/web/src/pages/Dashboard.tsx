@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Plus, MoreHorizontal, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,11 +106,50 @@ function StatCard({ title, value, change, trend, isLoading }: StatCardProps) {
 interface DashboardProps {
   onViewPeople?: () => void;
   onAddPerson?: () => void;
+  onSelectPerson?: (person: PersonWithEnrollment) => void;
 }
 
-export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
+type StatusFilter = "all" | "applied" | "interviewing" | "accepted";
+
+export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: DashboardProps) {
   const { data: people, isLoading: peopleLoading, refetch } = usePeopleWithEnrollments();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // Filter people based on selected tab
+  const filteredPeople = useMemo(() => {
+    if (!people) return [];
+    if (statusFilter === "all") return people;
+    return people.filter((person) => {
+      const status = person.enrollment_status || person.status;
+      return status === statusFilter;
+    });
+  }, [people, statusFilter]);
+
+  // Export people to CSV
+  const handleExport = () => {
+    if (!people || people.length === 0) return;
+
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Status", "Program", "Applied Date"];
+    const csvContent = [
+      headers.join(","),
+      ...people.map((p) => [
+        p.first_name,
+        p.last_name,
+        p.email || "",
+        p.phone || "",
+        p.enrollment_status || p.status,
+        p.program_name || "",
+        p.applied_at || p.created_at || "",
+      ].map(field => `"${field}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `people_export_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  };
 
   return (
     <div className="space-y-6">
@@ -125,7 +165,7 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="w-4 h-4" />
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -168,7 +208,7 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">
-              People {people?.length ? `(${people.length})` : ""}
+              People {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
             </CardTitle>
             {onViewPeople && (
               <Button variant="link" className="h-auto p-0 text-sm" onClick={onViewPeople}>
@@ -176,7 +216,7 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
               </Button>
             )}
           </div>
-          <Tabs defaultValue="all" className="w-auto">
+          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-auto">
             <TabsList className="h-8">
               <TabsTrigger value="all" className="text-xs px-3">
                 All
@@ -198,9 +238,11 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
             <div className="p-8 text-center text-muted-foreground">
               Loading people from database...
             </div>
-          ) : !people?.length ? (
+          ) : !filteredPeople?.length ? (
             <div className="p-8 text-center text-muted-foreground">
-              No people found. Add someone to get started.
+              {statusFilter === "all"
+                ? "No people found. Add someone to get started."
+                : `No people with status "${statusFilter}" found.`}
             </div>
           ) : (
             <Table>
@@ -225,10 +267,14 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {people.map((person) => {
+                {filteredPeople.map((person) => {
                   const displayStatus = person.enrollment_status || person.status;
                   return (
-                    <TableRow key={person.id} className="hover:bg-muted/50">
+                    <TableRow
+                      key={person.id}
+                      className="hover:bg-muted/50 cursor-pointer"
+                      onClick={() => onSelectPerson?.(person)}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="w-8 h-8">
@@ -259,7 +305,13 @@ export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
                         {formatDate(person.applied_at || person.created_at)}
                       </TableCell>
                       <TableCell>
-                        <AiActionButton label={getAiAction(person)} />
+                        <AiActionButton
+                          label={getAiAction(person)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectPerson?.(person);
+                          }}
+                        />
                       </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

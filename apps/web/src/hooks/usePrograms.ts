@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase, DEFAULT_ORG_ID } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export interface Program {
   id: string;
@@ -24,16 +24,15 @@ export interface ProgramStats {
 }
 
 /**
- * Fetch all programs for the current organization
+ * Fetch all programs (single-tenant - no org filter needed)
  */
-export function usePrograms(organizationId: string = DEFAULT_ORG_ID) {
+export function usePrograms() {
   return useQuery({
-    queryKey: ["programs", organizationId],
+    queryKey: ["programs"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("programs")
         .select("*")
-        .eq("organization_id", organizationId)
         .eq("is_active", true)
         .order("name");
 
@@ -68,15 +67,14 @@ export function useProgram(programId: string | undefined) {
 /**
  * Fetch program stats with enrollment counts
  */
-export function useProgramStats(organizationId: string = DEFAULT_ORG_ID) {
+export function useProgramStats() {
   return useQuery({
-    queryKey: ["program-stats", organizationId],
+    queryKey: ["program-stats"],
     queryFn: async () => {
       // Get programs
       const { data: programs, error: programsError } = await supabase
         .from("programs")
         .select("id, name")
-        .eq("organization_id", organizationId)
         .eq("is_active", true);
 
       if (programsError) throw programsError;
@@ -84,8 +82,7 @@ export function useProgramStats(organizationId: string = DEFAULT_ORG_ID) {
       // Get enrollment counts grouped by status
       const { data: enrollments, error: enrollmentsError } = await supabase
         .from("enrollments")
-        .select("program_id, status")
-        .eq("organization_id", organizationId);
+        .select("program_id, status");
 
       if (enrollmentsError) throw enrollmentsError;
 

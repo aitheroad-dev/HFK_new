@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HKF CRM - API Key Rotation Guide</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    header {
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+    header h1 { font-size: 28px; margin-bottom: 8px; }
+    header p { opacity: 0.9; }
+
+    .warning {
+      background: #fef2f2;
+      border: 2px solid #fca5a5;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .warning h3 { color: #991b1b; margin-bottom: 10px; }
+    .warning p { color: #7f1d1d; }
+
+    .checklist {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .checklist h2 { margin-bottom: 15px; font-size: 20px; }
+    .checklist ul { list-style: none; }
+    .checklist li {
+      padding: 10px 0;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist input[type="checkbox"] { width: 20px; height: 20px; }
+
+    .platform {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .platform h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .platform .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+
+    .steps { counter-reset: step; }
+    .step {
+      position: relative;
+      padding-left: 50px;
+      margin-bottom: 20px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .step h4 { font-size: 16px; margin-bottom: 8px; }
+    .step p { color: #475569; font-size: 14px; }
+
+    .url {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      margin: 10px 0;
+      word-break: break-all;
+    }
+    .url a { color: #1e40af; text-decoration: none; }
+    .url a:hover { text-decoration: underline; }
+
+    .env-var {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      margin: 15px 0;
+      overflow-x: auto;
+    }
+    .env-var .key { color: #93c5fd; }
+    .env-var .value { color: #86efac; }
+    .env-var .comment { color: #64748b; }
+
+    .note {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .note strong { color: #1e40af; }
+
+    .danger {
+      background: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .danger strong { color: #991b1b; }
+
+    .keys-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+    .keys-table th, .keys-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .keys-table th { background: #f8fafc; font-weight: 600; }
+    .keys-table code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>API Key Rotation Guide</h1>
+      <p>Step-by-step instructions for rotating all exposed credentials in HKF CRM</p>
+    </header>
+
+    <div class="warning">
+      <h3>Why This Is Critical</h3>
+      <p>The following API keys were committed to git and are considered compromised. Even if the repository is private, anyone with access to the git history can retrieve these credentials. <strong>Rotate ALL keys immediately.</strong></p>
+    </div>
+
+    <div class="checklist">
+      <h2>Rotation Checklist</h2>
+      <ul>
+        <li><input type="checkbox" id="c1"><label for="c1">Supabase (anon key + service role key)</label></li>
+        <li><input type="checkbox" id="c2"><label for="c2">Anthropic (Claude API key)</label></li>
+        <li><input type="checkbox" id="c3"><label for="c3">Google OAuth (client secret)</label></li>
+        <li><input type="checkbox" id="c4"><label for="c4">Upstash Redis (REST token)</label></li>
+        <li><input type="checkbox" id="c5"><label for="c5">Brevo (API key)</label></li>
+        <li><input type="checkbox" id="c6"><label for="c6">Update .env file with new keys</label></li>
+        <li><input type="checkbox" id="c7"><label for="c7">Restart all services</label></li>
+        <li><input type="checkbox" id="c8"><label for="c8">Verify everything still works</label></li>
+      </ul>
+    </div>
+
+    <!-- SUPABASE -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #3ecf8e 0%, #1a9f6c 100%);">S</span>
+        Supabase
+      </h2>
+
+      <p>Supabase has <strong>two keys</strong> that need rotation: the anonymous key (public, used by frontend) and the service role key (secret, bypasses RLS).</p>
+
+      <div class="url">
+        <a href="https://supabase.com/dashboard/project/txjyyvzyahqmjndfsnzx/settings/api" target="_blank">https://supabase.com/dashboard/project/txjyyvzyahqmjndfsnzx/settings/api</a>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Open API Settings</h4>
+          <p>Go to your Supabase project dashboard → Settings (gear icon) → API</p>
+        </div>
+
+        <div class="step">
+          <h4>Scroll to "Project API keys"</h4>
+          <p>You'll see two keys: <code>anon</code> (public) and <code>service_role</code> (secret)</p>
+        </div>
+
+        <div class="step">
+          <h4>Click "Regenerate" on anon key</h4>
+          <p>Click the refresh icon next to the anon key. Confirm when prompted. <strong>Copy the new key immediately.</strong></p>
+        </div>
+
+        <div class="step">
+          <h4>Click "Regenerate" on service_role key</h4>
+          <p>Same process for the service role key. This is the dangerous one - it bypasses all RLS.</p>
+        </div>
+
+        <div class="step">
+          <h4>Update .env file</h4>
+          <p>Replace both keys in your local <code>.env</code> file:</p>
+        </div>
+      </div>
+
+      <div class="env-var">
+        <span class="comment"># Supabase - ROTATED on [DATE]</span><br>
+        <span class="key">SUPABASE_URL</span>=<span class="value">https://txjyyvzyahqmjndfsnzx.supabase.co</span> <span class="comment"># URL stays the same</span><br>
+        <span class="key">SUPABASE_ANON_KEY</span>=<span class="value">[NEW_ANON_KEY_HERE]</span><br>
+        <span class="key">SUPABASE_SERVICE_KEY</span>=<span class="value">[NEW_SERVICE_KEY_HERE]</span>
+      </div>
+
+      <table class="keys-table">
+        <tr>
+          <th>Key</th>
+          <th>Env Variable</th>
+          <th>Used By</th>
+        </tr>
+        <tr>
+          <td>anon (public)</td>
+          <td><code>SUPABASE_ANON_KEY</code></td>
+          <td>Frontend (apps/web)</td>
+        </tr>
+        <tr>
+          <td>service_role (secret)</td>
+          <td><code>SUPABASE_SERVICE_KEY</code></td>
+          <td>API server (apps/api), Edge functions</td>
+        </tr>
+      </table>
+
+      <div class="danger">
+        <strong>Warning:</strong> The service_role key bypasses Row Level Security. Never expose it to the frontend or commit it to git.
+      </div>
+    </div>
+
+    <!-- ANTHROPIC -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #d4a574 0%, #8b6914 100%);">A</span>
+        Anthropic (Claude)
+      </h2>
+
+      <p>Your Claude API key powers the JARVIS AI assistant. Generate a new key and delete the old one.</p>
+
+      <div class="url">
+        <a href="https://console.anthropic.com/settings/keys" target="_blank">https://console.anthropic.com/settings/keys</a>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Open Anthropic Console</h4>
+          <p>Log in to console.anthropic.com and go to Settings → API Keys</p>
+        </div>
+
+        <div class="step">
+          <h4>Click "Create Key"</h4>
+          <p>Give it a descriptive name like "HKF CRM Production" so you know what it's for.</p>
+        </div>
+
+        <div class="step">
+          <h4>Copy the new key</h4>
+          <p>The key is only shown once. Copy it immediately and store it safely.</p>
+        </div>
+
+        <div class="step">
+          <h4>Delete the old key</h4>
+          <p>Find the compromised key in the list and click the trash icon to revoke it.</p>
+        </div>
+
+        <div class="step">
+          <h4>Update .env file</h4>
+        </div>
+      </div>
+
+      <div class="env-var">
+        <span class="comment"># Anthropic Claude - ROTATED on [DATE]</span><br>
+        <span class="key">ANTHROPIC_API_KEY</span>=<span class="value">sk-ant-api03-[NEW_KEY_HERE]</span>
+      </div>
+
+      <div class="note">
+        <strong>Tip:</strong> You can set usage limits on API keys in the Anthropic console to prevent unexpected charges if a key is compromised.
+      </div>
+    </div>
+
+    <!-- GOOGLE -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #4285f4 0%, #1a73e8 100%);">G</span>
+        Google OAuth
+      </h2>
+
+      <p>The Google OAuth client secret is used for "Sign in with Google" authentication. You need to regenerate the client secret (not the client ID).</p>
+
+      <div class="url">
+        <a href="https://console.cloud.google.com/apis/credentials" target="_blank">https://console.cloud.google.com/apis/credentials</a>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Open Google Cloud Console</h4>
+          <p>Go to APIs & Services → Credentials</p>
+        </div>
+
+        <div class="step">
+          <h4>Find your OAuth 2.0 Client</h4>
+          <p>Look for the client ID starting with <code>80121446608-8trgt0vud...</code> and click on it.</p>
+        </div>
+
+        <div class="step">
+          <h4>Scroll to "Client secrets"</h4>
+          <p>You'll see the existing secret. Click "ADD SECRET" to create a new one.</p>
+        </div>
+
+        <div class="step">
+          <h4>Copy the new secret</h4>
+          <p>Google shows the new secret. Copy it immediately.</p>
+        </div>
+
+        <div class="step">
+          <h4>Delete the old secret</h4>
+          <p>Click the trash icon next to the old (compromised) secret to delete it.</p>
+        </div>
+
+        <div class="step">
+          <h4>Update .env AND Supabase</h4>
+          <p>The Google secret is used in TWO places: your .env file AND the Supabase Auth provider settings.</p>
+        </div>
+      </div>
+
+      <div class="env-var">
+        <span class="comment"># Google OAuth - ROTATED on [DATE]</span><br>
+        <span class="key">GOOGLE_CLIENT_ID</span>=<span class="value">80121446608-8trgt0vud70utrh7kr45u3rab2eq1k3k.apps.googleusercontent.com</span> <span class="comment"># ID stays same</span><br>
+        <span class="key">GOOGLE_CLIENT_SECRET</span>=<span class="value">[NEW_SECRET_HERE]</span>
+      </div>
+
+      <div class="danger">
+        <strong>Important:</strong> You must ALSO update the secret in Supabase Dashboard:<br><br>
+        1. Go to <a href="https://supabase.com/dashboard/project/txjyyvzyahqmjndfsnzx/auth/providers" target="_blank">Supabase Auth Providers</a><br>
+        2. Click on Google<br>
+        3. Update the Client Secret field<br>
+        4. Save changes
+      </div>
+    </div>
+
+    <!-- UPSTASH -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #00e9a3 0%, #00b377 100%);">U</span>
+        Upstash Redis
+      </h2>
+
+      <p>Upstash provides serverless Redis for rate limiting and caching. You need to regenerate the REST token.</p>
+
+      <div class="url">
+        <a href="https://console.upstash.com/" target="_blank">https://console.upstash.com/</a>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Open Upstash Console</h4>
+          <p>Log in and select your Redis database from the dashboard.</p>
+        </div>
+
+        <div class="step">
+          <h4>Go to "REST API" tab</h4>
+          <p>Click on the REST API section in your database details.</p>
+        </div>
+
+        <div class="step">
+          <h4>Click "Reset Token"</h4>
+          <p>There should be a button to reset/regenerate the REST token. Click it and confirm.</p>
+        </div>
+
+        <div class="step">
+          <h4>Copy both URL and Token</h4>
+          <p>Copy the new <code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code>.</p>
+        </div>
+
+        <div class="step">
+          <h4>Update .env file</h4>
+        </div>
+      </div>
+
+      <div class="env-var">
+        <span class="comment"># Upstash Redis - ROTATED on [DATE]</span><br>
+        <span class="key">UPSTASH_REDIS_REST_URL</span>=<span class="value">https://your-db.upstash.io</span><br>
+        <span class="key">UPSTASH_REDIS_REST_TOKEN</span>=<span class="value">[NEW_TOKEN_HERE]</span>
+      </div>
+
+      <div class="note">
+        <strong>Note:</strong> Upstash has two token types: <code>UPSTASH_REDIS_REST_TOKEN</code> (read/write) and <code>UPSTASH_REDIS_REST_TOKEN_READONLY</code> (read only). Make sure to rotate the read/write token.
+      </div>
+    </div>
+
+    <!-- BREVO -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #0b4f6c 0%, #083d54 100%);">B</span>
+        Brevo (SendinBlue)
+      </h2>
+
+      <p>Brevo handles transactional emails (acceptance letters, interview notifications, etc.).</p>
+
+      <div class="url">
+        <a href="https://app.brevo.com/settings/keys/api" target="_blank">https://app.brevo.com/settings/keys/api</a>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Open Brevo Dashboard</h4>
+          <p>Log in to Brevo and go to Settings → SMTP & API → API Keys</p>
+        </div>
+
+        <div class="step">
+          <h4>Click "Generate a new API key"</h4>
+          <p>Give it a name like "HKF CRM Production".</p>
+        </div>
+
+        <div class="step">
+          <h4>Copy the new key</h4>
+          <p>The key starts with <code>xkeysib-</code>. Copy it immediately.</p>
+        </div>
+
+        <div class="step">
+          <h4>Delete the old key</h4>
+          <p>Find and delete the compromised API key from the list.</p>
+        </div>
+
+        <div class="step">
+          <h4>Update .env file</h4>
+        </div>
+      </div>
+
+      <div class="env-var">
+        <span class="comment"># Brevo Email - ROTATED on [DATE]</span><br>
+        <span class="key">BREVO_API_KEY</span>=<span class="value">xkeysib-[NEW_KEY_HERE]</span>
+      </div>
+
+      <div class="note">
+        <strong>Tip:</strong> Brevo also supports SMTP credentials if you prefer that method. The API key is for their REST API.
+      </div>
+    </div>
+
+    <!-- FINAL STEPS -->
+    <div class="platform">
+      <h2>
+        <span class="logo" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">✓</span>
+        Final Verification Steps
+      </h2>
+
+      <div class="steps">
+        <div class="step">
+          <h4>Update all .env files</h4>
+          <p>Make sure to update <code>/Users/yaronkra/Jarvis/projects/hkf-crm/.env</code> with all new keys.</p>
+        </div>
+
+        <div class="step">
+          <h4>Restart the API server</h4>
+          <div class="env-var">
+            cd /Users/yaronkra/Jarvis/projects/hkf-crm/apps/api<br>
+            npm run dev
+          </div>
+        </div>
+
+        <div class="step">
+          <h4>Restart the web frontend</h4>
+          <div class="env-var">
+            cd /Users/yaronkra/Jarvis/projects/hkf-crm/apps/web<br>
+            npm run dev
+          </div>
+        </div>
+
+        <div class="step">
+          <h4>Test each integration</h4>
+          <p>Verify that:</p>
+          <ul style="margin-left: 20px; margin-top: 10px;">
+            <li>Supabase connection works (dashboard loads data)</li>
+            <li>Google login works (can sign in)</li>
+            <li>JARVIS AI responds (send a test message)</li>
+            <li>Any Redis-dependent features work</li>
+          </ul>
+        </div>
+
+        <div class="step">
+          <h4>Verify old keys are revoked</h4>
+          <p>Try using the old keys manually - they should fail with "unauthorized" or similar errors.</p>
+        </div>
+      </div>
+
+      <div class="danger">
+        <strong>Next Step After Rotation:</strong> You still need to remove the .env file from git history using BFG Repo-Cleaner. The old keys are still visible in the git history until you do this!
+      </div>
+    </div>
+
+    <footer style="text-align: center; padding: 30px; color: #64748b; font-size: 13px;">
+      <p>HKF CRM - API Key Rotation Guide</p>
+      <p>Created: 2025-12-18 | Security Audit Phase 1</p>
+    </footer>
+  </div>
+</body>
+</html>
