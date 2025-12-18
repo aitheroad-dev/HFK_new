@@ -1,0 +1,281 @@
+import { Plus, MoreHorizontal, Download, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AiActionButton } from "@/components/jarvis";
+import { usePeopleWithEnrollments, type PersonWithEnrollment } from "@/hooks/usePeople";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
+
+const statusVariants: Record<string, string> = {
+  applied: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  interviewing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  accepted: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  enrolled: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+  pending: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+  active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+};
+
+const statusLabels: Record<string, string> = {
+  applied: "Applied",
+  interviewing: "Interviewing",
+  accepted: "Accepted",
+  enrolled: "Enrolled",
+  pending: "Pending",
+  active: "Active",
+};
+
+function getAiAction(person: PersonWithEnrollment): string {
+  const status = person.enrollment_status || person.status;
+  switch (status) {
+    case "applied":
+      return "Schedule interview";
+    case "interviewing":
+      return "Record outcome";
+    case "accepted":
+      return "Send welcome email";
+    case "enrolled":
+      return "View progress";
+    default:
+      return "View profile";
+  }
+}
+
+function getInitials(firstName: string, lastName: string): string {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
+
+function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatCurrency(amount: number): string {
+  if (amount >= 1000) {
+    return `${Math.round(amount / 1000)}K`;
+  }
+  return amount.toString();
+}
+
+interface StatCardProps {
+  title: string;
+  value: string;
+  change?: string;
+  trend?: "up" | "neutral";
+  isLoading?: boolean;
+}
+
+function StatCard({ title, value, change, trend, isLoading }: StatCardProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription>{title}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="h-9 w-16 bg-muted animate-pulse rounded" />
+        ) : (
+          <div className="text-3xl font-bold text-primary">{value}</div>
+        )}
+        {change && (
+          <p
+            className={`text-xs mt-1 ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
+          >
+            {change}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface DashboardProps {
+  onViewPeople?: () => void;
+  onAddPerson?: () => void;
+}
+
+export function Dashboard({ onViewPeople, onAddPerson }: DashboardProps) {
+  const { data: people, isLoading: peopleLoading, refetch } = usePeopleWithEnrollments();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-primary">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            CRM Overview - Real-time data from Supabase
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={() => refetch()}>
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button onClick={onAddPerson}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Person
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total People"
+          value={stats?.totalPeople.toString() || "0"}
+          change={stats?.recentActivity.newThisWeek ? `+${stats.recentActivity.newThisWeek} this week` : undefined}
+          trend={stats?.recentActivity.newThisWeek ? "up" : "neutral"}
+          isLoading={statsLoading}
+        />
+        <StatCard
+          title="Pending Interviews"
+          value={stats?.pendingInterviews.toString() || "0"}
+          change={stats?.recentActivity.interviewsToday ? `${stats.recentActivity.interviewsToday} today` : undefined}
+          isLoading={statsLoading}
+        />
+        <StatCard
+          title="Accepted"
+          value={stats?.acceptedCount.toString() || "0"}
+          isLoading={statsLoading}
+        />
+        <StatCard
+          title="Payments"
+          value={stats?.totalPayments ? formatCurrency(stats.totalPayments) : "0"}
+          isLoading={statsLoading}
+        />
+      </div>
+
+      {/* People Table */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="flex items-center gap-4">
+            <CardTitle className="text-base">
+              People {people?.length ? `(${people.length})` : ""}
+            </CardTitle>
+            {onViewPeople && (
+              <Button variant="link" className="h-auto p-0 text-sm" onClick={onViewPeople}>
+                View all
+              </Button>
+            )}
+          </div>
+          <Tabs defaultValue="all" className="w-auto">
+            <TabsList className="h-8">
+              <TabsTrigger value="all" className="text-xs px-3">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="applied" className="text-xs px-3">
+                Applied
+              </TabsTrigger>
+              <TabsTrigger value="interviewing" className="text-xs px-3">
+                Interviewing
+              </TabsTrigger>
+              <TabsTrigger value="accepted" className="text-xs px-3">
+                Accepted
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardHeader>
+        <CardContent className="p-0">
+          {peopleLoading ? (
+            <div className="p-8 text-center text-muted-foreground">
+              Loading people from database...
+            </div>
+          ) : !people?.length ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No people found. Add someone to get started.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                    Person
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                    Program
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                    Added
+                  </TableHead>
+                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                    AI Actions
+                  </TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {people.map((person) => {
+                  const displayStatus = person.enrollment_status || person.status;
+                  return (
+                    <TableRow key={person.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="jarvis-gradient text-white text-xs">
+                              {getInitials(person.first_name, person.last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {person.first_name} {person.last_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {person.email || "No email"}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{person.program_name || "-"}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={statusVariants[displayStatus] || statusVariants.pending}
+                        >
+                          {statusLabels[displayStatus] || displayStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(person.applied_at || person.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <AiActionButton label={getAiAction(person)} />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default Dashboard;

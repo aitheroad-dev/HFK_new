@@ -1,0 +1,135 @@
+/* ============================================
+   HKF Brand Theme - Hoffman Kofman Foundation
+   Extracted from hoffmankofman.com
+   ============================================ */
+
+:root {
+  /* HKF Brand Colors (raw values for direct use) */
+  --hkf-blue-primary: #0040B6;
+  --hkf-blue-dark: #384AD3;
+  --hkf-blue-light: #2f5dff;
+  --hkf-blue-accent: #597dff;
+  --hkf-teal: #0acc83;
+  --hkf-teal-dark: #4b916d;
+  --hkf-green-light: #97c693;
+
+  /* Override shadcn theme with HKF colors */
+  --radius: 0.5rem;
+
+  /* Light mode - HKF branded */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+
+  /* HKF Blue as primary */
+  --primary: oklch(0.42 0.18 260);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.97 0.01 260);
+  --secondary-foreground: oklch(0.25 0.05 260);
+
+  --muted: oklch(0.97 0.01 260);
+  --muted-foreground: oklch(0.5 0.02 260);
+
+  /* HKF Teal as accent */
+  --accent: oklch(0.72 0.17 165);
+  --accent-foreground: oklch(1 0 0);
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --border: oklch(0.91 0.01 260);
+  --input: oklch(0.91 0.01 260);
+  --ring: oklch(0.42 0.18 260);
+
+  /* Chart colors with HKF palette */
+  --chart-1: oklch(0.42 0.18 260);
+  --chart-2: oklch(0.72 0.17 165);
+  --chart-3: oklch(0.55 0.15 260);
+  --chart-4: oklch(0.65 0.12 165);
+  --chart-5: oklch(0.75 0.10 260);
+
+  /* Sidebar - light HKF theme */
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.42 0.18 260);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.97 0.01 260);
+  --sidebar-accent-foreground: oklch(0.25 0.05 260);
+  --sidebar-border: oklch(0.91 0.01 260);
+  --sidebar-ring: oklch(0.42 0.18 260);
+}
+
+.dark {
+  /* Dark mode - HKF branded */
+  --background: oklch(0.16 0.02 260);
+  --foreground: oklch(0.98 0 0);
+
+  --card: oklch(0.16 0.02 260);
+  --card-foreground: oklch(0.98 0 0);
+
+  --popover: oklch(0.16 0.02 260);
+  --popover-foreground: oklch(0.98 0 0);
+
+  /* HKF Blue (lighter for dark mode) */
+  --primary: oklch(0.6 0.18 260);
+  --primary-foreground: oklch(0.16 0.02 260);
+
+  --secondary: oklch(0.25 0.04 260);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted: oklch(0.25 0.04 260);
+  --muted-foreground: oklch(0.7 0.02 260);
+
+  /* HKF Teal (adjusted for dark mode) */
+  --accent: oklch(0.68 0.15 165);
+  --accent-foreground: oklch(0.16 0.02 260);
+
+  --destructive: oklch(0.704 0.191 22.216);
+
+  --border: oklch(0.25 0.04 260);
+  --input: oklch(0.25 0.04 260);
+  --ring: oklch(0.6 0.18 260);
+
+  /* Chart colors for dark mode */
+  --chart-1: oklch(0.6 0.18 260);
+  --chart-2: oklch(0.68 0.15 165);
+  --chart-3: oklch(0.5 0.12 260);
+  --chart-4: oklch(0.6 0.10 165);
+  --chart-5: oklch(0.55 0.08 260);
+
+  /* Sidebar - dark HKF theme */
+  --sidebar: oklch(0.2 0.03 260);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.6 0.18 260);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.25 0.04 260);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.3 0.04 260);
+  --sidebar-ring: oklch(0.6 0.18 260);
+}
+
+/* HKF Brand Gradient utility classes */
+.hkf-gradient {
+  background: linear-gradient(135deg, var(--hkf-teal) 0%, var(--hkf-blue-primary) 100%);
+}
+
+.hkf-gradient-text {
+  background: linear-gradient(135deg, var(--hkf-teal) 0%, var(--hkf-blue-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* JARVIS-specific styles */
+.jarvis-gradient {
+  background: linear-gradient(135deg, var(--hkf-teal) 0%, var(--hkf-blue-primary) 100%);
+}
+
+.jarvis-gradient-subtle {
+  background: linear-gradient(135deg, rgba(10, 204, 131, 0.1) 0%, rgba(0, 64, 182, 0.1) 100%);
+}
