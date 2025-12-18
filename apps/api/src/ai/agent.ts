@@ -2,7 +2,7 @@ import AnthropicModule from '@anthropic-ai/sdk';
 import type { MessageParam, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
 
-// Handle both ESM and CJS module formats
+// Handle both ESM and CJS module formats (Vercel/pnpm compatible)
 const Anthropic = (AnthropicModule as unknown as { default: typeof AnthropicModule }).default || AnthropicModule;
 
 // Initialize Anthropic client
