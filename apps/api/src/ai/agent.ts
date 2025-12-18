@@ -1,12 +1,12 @@
-import AnthropicModule from '@anthropic-ai/sdk';
 import type { MessageParam, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
 
-// Handle both ESM and CJS module formats (Vercel/pnpm compatible)
-const Anthropic = (AnthropicModule as unknown as { default: typeof AnthropicModule }).default || AnthropicModule;
+// Use dynamic import pattern for Vercel compatibility
+import AnthropicDefault from '@anthropic-ai/sdk';
+const Anthropic = AnthropicDefault as unknown as typeof AnthropicDefault & { new(opts: { apiKey?: string }): InstanceType<typeof AnthropicDefault> };
 
 // Initialize Anthropic client
-const anthropic = new Anthropic({
+const anthropic = new (Anthropic as any)({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
