@@ -79,9 +79,6 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
-        {/* JARVIS Panel - swapped position */}
-        <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
-
         {/* Sidebar - Right side */}
         <Sidebar side="right" className="border-r-0 border-l">
           <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
@@ -192,6 +189,9 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
           {/* Main content area */}
           <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
         </div>
+
+        {/* JARVIS Panel - Left side (last in flex = left in RTL) */}
+        <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
       </div>
     </SidebarProvider>
   );
