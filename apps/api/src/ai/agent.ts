@@ -1,14 +1,18 @@
-import type { MessageParam, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
 
-// Use dynamic import pattern for Vercel compatibility
-import AnthropicDefault from '@anthropic-ai/sdk';
-const Anthropic = AnthropicDefault as unknown as typeof AnthropicDefault & { new(opts: { apiKey?: string }): InstanceType<typeof AnthropicDefault> };
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
 
 // Initialize Anthropic client
-const anthropic = new (Anthropic as any)({
+const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Type aliases for Anthropic SDK types
+type MessageParam = { role: 'user' | 'assistant'; content: string | Array<{ type: string; [key: string]: unknown }> };
+type ContentBlock = { type: string; text?: string; id?: string; name?: string; input?: unknown };
+type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: unknown };
+type ToolResultBlockParam = { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean };
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
