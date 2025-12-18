@@ -1,7 +1,10 @@
+import { createRequire } from 'module';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Anthropic = require('@anthropic-ai/sdk').default || require('@anthropic-ai/sdk');
+// Use createRequire to load CommonJS module in ESM context
+const require = createRequire(import.meta.url);
+const AnthropicSDK = require('@anthropic-ai/sdk');
+const Anthropic = AnthropicSDK.default || AnthropicSDK;
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
