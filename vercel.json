@@ -4,6 +4,7 @@
   "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "framework": "vite",
+  "functions": {},
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

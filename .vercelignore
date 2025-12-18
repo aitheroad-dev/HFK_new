@@ -1,0 +1,10 @@
+# Ignore API folder - deployed separately on Fly.io
+apps/api
+
+# Ignore packages (only needed at build time)
+packages
+
+# Other ignores
+node_modules
+.git
+*.md
