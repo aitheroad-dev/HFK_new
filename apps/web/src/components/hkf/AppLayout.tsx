@@ -188,8 +188,8 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
 
           {/* Content + JARVIS Panel */}
           <div className="flex flex-1 overflow-hidden">
-            <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
             <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
+            <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
           </div>
         </SidebarInset>
       </div>

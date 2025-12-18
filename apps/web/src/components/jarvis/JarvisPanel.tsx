@@ -38,7 +38,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
   return (
     <aside
       className={cn(
-        "w-[22rem] bg-card border-l border-border transition-all duration-200",
+        "w-[22rem] bg-card border-r border-border transition-all duration-200",
         "flex flex-col h-full",
         className
       )}
@@ -54,12 +54,12 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
             {isConnected ? (
               <>
                 <Wifi className="w-3 h-3 text-accent" />
-                <span className="text-accent">Connected</span>
+                <span className="text-accent">מחובר</span>
               </>
             ) : (
               <>
                 <WifiOff className="w-3 h-3 text-destructive" />
-                <span className="text-destructive">Disconnected</span>
+                <span className="text-destructive">מנותק</span>
               </>
             )}
           </div>
@@ -69,7 +69,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
           size="icon"
           onClick={clearHistory}
           className="text-muted-foreground hover:text-foreground"
-          title="Clear conversation"
+          title="נקה שיחה"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -101,7 +101,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
             {/* Show tool calls if any */}
             {message.toolCalls && message.toolCalls.length > 0 && (
               <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground">
-                <span className="font-medium">Actions taken:</span>
+                <span className="font-medium">פעולות שבוצעו:</span>
                 <ul className="mt-1 space-y-0.5">
                   {message.toolCalls.map((tool) => (
                     <li key={tool.id} className="flex items-center gap-1">
@@ -135,7 +135,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
       <div className="shrink-0 p-4 border-t border-border bg-card">
         {!isConnected && (
           <div className="mb-2 text-xs text-destructive text-center">
-            Reconnecting to JARVIS...
+            מתחבר מחדש ל-JARVIS...
           </div>
         )}
         <div className="flex gap-2 p-2 bg-muted rounded-lg border border-border focus-within:border-primary">
@@ -143,7 +143,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={isConnected ? "Ask JARVIS anything..." : "Waiting for connection..."}
+            placeholder={isConnected ? "שאל את JARVIS כל דבר..." : "ממתין לחיבור..."}
             className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 px-2"
             disabled={!isConnected || isLoading}
           />
