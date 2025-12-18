@@ -79,8 +79,45 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar>
+        {/* JARVIS Panel - Left side */}
+        <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
+
+        {/* Main Content - Center */}
+        <div className="flex flex-col flex-1">
+          {/* Header */}
+          <header className="h-14 border-b border-border flex items-center px-6 gap-4 bg-card">
+            <div className="flex items-center gap-2 flex-1 max-w-md">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="חפש מועמדים, תוכניות..."
+                className="border-none shadow-none focus-visible:ring-0 bg-transparent"
+                value={searchQuery}
+                onChange={(e) => onSearch?.(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQuery && currentPage !== "people") {
+                    onNavigate?.("people");
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 mr-auto">
+              <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
+              </Avatar>
+              <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </header>
+
+          {/* Main content area */}
+          <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
+        </div>
+
+        {/* Sidebar - Right side */}
+        <Sidebar side="right" className="border-r-0 border-l">
           <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
             <div className="flex items-center gap-3">
               <HkfLogo size="md" />
@@ -155,43 +192,6 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             </SidebarMenu>
           </SidebarFooter>
         </Sidebar>
-
-        {/* Main Content */}
-        <SidebarInset className="flex flex-col flex-1">
-          {/* Header */}
-          <header className="h-14 border-b border-border flex items-center px-6 gap-4 bg-card">
-            <div className="flex items-center gap-2 flex-1 max-w-md">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="חפש מועמדים, תוכניות..."
-                className="border-none shadow-none focus-visible:ring-0 bg-transparent"
-                value={searchQuery}
-                onChange={(e) => onSearch?.(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchQuery && currentPage !== "people") {
-                    onNavigate?.("people");
-                  }
-                }}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 mr-auto">
-              <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
-              <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
-              </Avatar>
-              <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </header>
-
-          {/* Content + JARVIS Panel */}
-          <div className="flex flex-1 overflow-hidden">
-            <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
-            <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
-          </div>
-        </SidebarInset>
       </div>
     </SidebarProvider>
   );
