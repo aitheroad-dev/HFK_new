@@ -27,6 +27,33 @@ export function useAuthProvider(): AuthContextValue {
   // Check for existing session on mount
   useEffect(() => {
     const initAuth = async () => {
+      // Check if we have tokens in the URL hash (OAuth callback)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (accessToken && refreshToken) {
+        // We have tokens from OAuth callback - set the session explicitly
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.error("Error setting session from OAuth callback:", error);
+        } else {
+          // Clear the hash from URL for cleaner UX
+          window.history.replaceState(null, "", window.location.pathname);
+          setState({
+            user: data.session?.user ?? null,
+            session: data.session,
+            isLoading: false,
+            isAuthenticated: !!data.session?.user,
+          });
+          return;
+        }
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       setState({
         user: session?.user ?? null,
