@@ -1,6 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
+import AnthropicModule from '@anthropic-ai/sdk';
 import type { MessageParam, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
+
+// Handle both ESM and CJS module formats
+const Anthropic = (AnthropicModule as unknown as { default: typeof AnthropicModule }).default || AnthropicModule;
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -96,7 +99,7 @@ Guidelines:
     while (response.stop_reason === 'tool_use') {
       // Extract tool use blocks
       const toolUseBlocks = response.content.filter(
-        (block): block is ToolUseBlock => block.type === 'tool_use'
+        (block: ContentBlock): block is ToolUseBlock => block.type === 'tool_use'
       );
 
       // Add assistant message with tool calls to history
@@ -166,7 +169,7 @@ Guidelines:
 
     // Extract final text response
     const textContent = response.content.find(
-      (block): block is ContentBlock & { type: 'text' } => block.type === 'text'
+      (block: ContentBlock): block is ContentBlock & { type: 'text' } => block.type === 'text'
     );
 
     const assistantMessage = textContent?.text || '';
