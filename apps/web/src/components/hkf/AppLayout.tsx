@@ -45,18 +45,18 @@ interface AppLayoutProps {
 
 const navigationItems = {
   overview: [
-    { label: "Dashboard", icon: LayoutDashboard, page: "dashboard" as Page },
-    { label: "People", icon: Users, page: "people" as Page },
+    { label: "לוח בקרה", icon: LayoutDashboard, page: "dashboard" as Page },
+    { label: "אנשים", icon: Users, page: "people" as Page },
   ],
   programs: [
-    { label: "Fellowship", icon: GraduationCap },
-    { label: "Couples Program", icon: UserCircle },
-    { label: "Birthright", icon: Globe },
+    { label: "פלואושיפ", icon: GraduationCap },
+    { label: "תוכנית זוגות", icon: UserCircle },
+    { label: "תגלית", icon: Globe },
   ],
   operations: [
-    { label: "Interviews", icon: Calendar, badge: "3" },
-    { label: "Payments", icon: CreditCard },
-    { label: "Messages", icon: Mail },
+    { label: "ראיונות", icon: Calendar, badge: "3" },
+    { label: "תשלומים", icon: CreditCard },
+    { label: "הודעות", icon: Mail },
   ],
 };
 
@@ -85,15 +85,15 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             <div className="flex items-center gap-3">
               <HkfLogo size="md" />
               <div>
-                <div className="font-semibold text-sm text-primary">Hoffman Kofman</div>
-                <div className="text-xs text-muted-foreground">Leadership Foundation</div>
+                <div className="font-semibold text-sm text-primary">הופמן קופמן</div>
+                <div className="text-xs text-muted-foreground">קרן למנהיגות</div>
               </div>
             </div>
           </SidebarHeader>
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Overview</SidebarGroupLabel>
+              <SidebarGroupLabel>סקירה</SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.overview.map((item) => (
                   <SidebarMenuItem key={item.label}>
@@ -110,7 +110,7 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>Programs <span className="text-xs text-muted-foreground ml-1">(Coming Soon)</span></SidebarGroupLabel>
+              <SidebarGroupLabel>תוכניות <span className="text-xs text-muted-foreground mr-1">(בקרוב)</span></SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.programs.map((item) => (
                   <SidebarMenuItem key={item.label}>
@@ -124,7 +124,7 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>Operations <span className="text-xs text-muted-foreground ml-1">(Coming Soon)</span></SidebarGroupLabel>
+              <SidebarGroupLabel>תפעול <span className="text-xs text-muted-foreground mr-1">(בקרוב)</span></SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.operations.map((item) => (
                   <SidebarMenuItem key={item.label}>
@@ -148,8 +148,8 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
               <SidebarMenuItem>
                 <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
                   <Settings className="w-4 h-4" />
-                  <span>Settings</span>
-                  <span className="text-xs text-muted-foreground ml-auto">Soon</span>
+                  <span>הגדרות</span>
+                  <span className="text-xs text-muted-foreground mr-auto">בקרוב</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -163,7 +163,7 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <Search className="w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search candidates, programs..."
+                placeholder="חפש מועמדים, תוכניות..."
                 className="border-none shadow-none focus-visible:ring-0 bg-transparent"
                 value={searchQuery}
                 onChange={(e) => onSearch?.(e.target.value)}
@@ -175,12 +175,12 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
               />
             </div>
 
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 mr-auto">
               <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
               </Avatar>
-              <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+              <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>

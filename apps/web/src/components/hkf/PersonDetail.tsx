@@ -31,13 +31,13 @@ const statusVariants: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  applied: "Applied",
-  interviewing: "Interviewing",
-  accepted: "Accepted",
-  enrolled: "Enrolled",
-  pending: "Pending",
-  active: "Active",
-  rejected: "Rejected",
+  applied: "הגיש מועמדות",
+  interviewing: "בראיון",
+  accepted: "התקבל",
+  enrolled: "רשום",
+  pending: "ממתין",
+  active: "פעיל",
+  rejected: "נדחה",
 };
 
 function getInitials(firstName: string, lastName: string): string {
@@ -46,7 +46,7 @@ function getInitials(firstName: string, lastName: string): string {
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString("he-IL", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -98,7 +98,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
   return (
     <div
       className={cn(
-        "w-[400px] bg-card border-l border-border flex flex-col h-full",
+        "w-[400px] bg-card border-r border-border flex flex-col h-full",
         className
       )}
     >
@@ -135,19 +135,19 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
               value="overview"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
             >
-              Overview
+              סקירה
             </TabsTrigger>
             <TabsTrigger
               value="timeline"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
             >
-              Timeline
+              ציר זמן
             </TabsTrigger>
             <TabsTrigger
               value="notes"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
             >
-              Notes
+              הערות
             </TabsTrigger>
           </TabsList>
 
@@ -156,20 +156,20 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Contact Information
+                  פרטי התקשרות
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {person.email || "No email provided"}
+                    {person.email || "לא סופק אימייל"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {person.phone || "No phone provided"}
+                    {person.phone || "לא סופק טלפון"}
                   </span>
                 </div>
               </CardContent>
@@ -179,18 +179,18 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Program
+                  תוכנית
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {person.program_name || "No program assigned"}
+                    {person.program_name || "לא שויך לתוכנית"}
                   </span>
                 </div>
                 {person.cohort_name && (
                   <div className="text-sm text-muted-foreground">
-                    Cohort: {person.cohort_name}
+                    מחזור: {person.cohort_name}
                   </div>
                 )}
               </CardContent>
@@ -200,14 +200,14 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Key Dates
+                  תאריכים חשובים
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                   <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">Applied</div>
+                    <div className="text-xs text-muted-foreground">הגשה</div>
                     <div className="text-sm">
                       {formatDate(person.applied_at || person.created_at)}
                     </div>
@@ -218,7 +218,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                     <div className="flex items-center gap-3">
                       <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                       <div className="flex-1">
-                        <div className="text-xs text-muted-foreground">Interview</div>
+                        <div className="text-xs text-muted-foreground">ראיון</div>
                         <div className="text-sm">{formatDate(person.interview_date)}</div>
                       </div>
                     </div>
@@ -229,8 +229,8 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                         className="flex-1"
                         onClick={() => onSubmitFeedback?.(person)}
                       >
-                        <ClipboardCheck className="w-4 h-4 mr-1" />
-                        Feedback
+                        <ClipboardCheck className="w-4 h-4 ml-1" />
+                        משוב
                       </Button>
                       <Button
                         variant="outline"
@@ -238,8 +238,8 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                         className="flex-1"
                         onClick={() => onMakeDecision?.(person)}
                       >
-                        <Scale className="w-4 h-4 mr-1" />
-                        Decision
+                        <Scale className="w-4 h-4 ml-1" />
+                        החלטה
                       </Button>
                     </div>
                   </div>
@@ -250,8 +250,8 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                     className="w-full"
                     onClick={() => onScheduleInterview?.(person)}
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Schedule Interview
+                    <UserPlus className="w-4 h-4 ml-2" />
+                    קבע ראיון
                   </Button>
                 )}
               </CardContent>
@@ -263,7 +263,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    Notes
+                    הערות
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -280,7 +280,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
               <div className="flex gap-3">
                 <div className="w-2 h-2 rounded-full bg-primary mt-2" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Created</div>
+                  <div className="text-sm font-medium">נוצר</div>
                   <div className="text-xs text-muted-foreground">
                     {formatDate(person.created_at)}
                   </div>
@@ -290,7 +290,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <div className="flex gap-3">
                   <div className="w-2 h-2 rounded-full bg-yellow-500 mt-2" />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">Applied</div>
+                    <div className="text-sm font-medium">הגיש מועמדות</div>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(person.applied_at)}
                     </div>
@@ -301,7 +301,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <div className="flex gap-3">
                   <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
                   <div className="flex-1">
-                    <div className="text-sm font-medium">Interview scheduled</div>
+                    <div className="text-sm font-medium">ראיון נקבע</div>
                     <div className="text-xs text-muted-foreground">
                       {formatDate(person.interview_date)}
                     </div>
@@ -317,7 +317,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <Textarea
                   value={notesValue}
                   onChange={(e) => setNotesValue(e.target.value)}
-                  placeholder="Add notes about this person..."
+                  placeholder="הוסף הערות על אדם זה..."
                   className="min-h-[150px] resize-none"
                   autoFocus
                 />
@@ -328,11 +328,11 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                     disabled={updateNotes.isPending}
                   >
                     {updateNotes.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
                     ) : (
-                      <Save className="w-4 h-4 mr-2" />
+                      <Save className="w-4 h-4 ml-2" />
                     )}
-                    Save
+                    שמור
                   </Button>
                   <Button
                     size="sm"
@@ -343,7 +343,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                     }}
                     disabled={updateNotes.isPending}
                   >
-                    Cancel
+                    ביטול
                   </Button>
                 </div>
               </div>
@@ -353,7 +353,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                   <div className="text-sm whitespace-pre-wrap">{person.notes}</div>
                 ) : (
                   <div className="text-sm text-muted-foreground">
-                    No notes yet. Add a note to keep track of important information.
+                    אין הערות עדיין. הוסף הערה כדי לעקוב אחר מידע חשוב.
                   </div>
                 )}
                 <Button
@@ -363,13 +363,13 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 >
                   {person.notes ? (
                     <>
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      Edit Note
+                      <Edit2 className="w-4 h-4 ml-2" />
+                      ערוך הערה
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Note
+                      <Plus className="w-4 h-4 ml-2" />
+                      הוסף הערה
                     </>
                   )}
                 </Button>
@@ -382,8 +382,8 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
       {/* Footer Actions */}
       <div className="shrink-0 p-4 border-t border-border flex gap-2">
         <Button variant="outline" className="flex-1" onClick={() => onEdit?.(person)}>
-          <Edit2 className="w-4 h-4 mr-2" />
-          Edit
+          <Edit2 className="w-4 h-4 ml-2" />
+          ערוך
         </Button>
         <Button
           variant="outline"
@@ -399,19 +399,19 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {person.first_name} {person.last_name}?</AlertDialogTitle>
+            <AlertDialogTitle>למחוק את {person.first_name} {person.last_name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this person
-              and all associated data including enrollments, interviews, and payment records.
+              לא ניתן לבטל פעולה זו. פעולה זו תמחק לצמיתות את האדם הזה
+              ואת כל הנתונים הקשורים אליו כולל הרשמות, ראיונות ורשומות תשלום.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "מוחק..." : "מחק"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -33,13 +33,13 @@ const statusVariants: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  applied: "Applied",
-  interviewing: "Interviewing",
-  accepted: "Accepted",
-  enrolled: "Enrolled",
-  pending: "Pending",
-  active: "Active",
-  rejected: "Rejected",
+  applied: "הגיש מועמדות",
+  interviewing: "בראיון",
+  accepted: "התקבל",
+  enrolled: "רשום",
+  pending: "ממתין",
+  active: "פעיל",
+  rejected: "נדחה",
 };
 
 const allStatuses = ["applied", "interviewing", "accepted", "enrolled", "rejected"];
@@ -50,7 +50,7 @@ function getInitials(firstName: string, lastName: string): string {
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString("he-IL", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -107,7 +107,7 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
     const dataToExport = filteredPeople.length > 0 ? filteredPeople : people;
     if (!dataToExport || dataToExport.length === 0) return;
 
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Status", "Program", "Applied Date"];
+    const headers = ["שם פרטי", "שם משפחה", "אימייל", "טלפון", "סטטוס", "תוכנית", "תאריך הגשה"];
     const csvContent = [
       headers.join(","),
       ...dataToExport.map((p) => [
@@ -133,19 +133,19 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-primary">People</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-primary">אנשים</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {filteredPeople.length} {filteredPeople.length === 1 ? "person" : "people"} found
+            נמצאו {filteredPeople.length} {filteredPeople.length === 1 ? "איש" : "אנשים"}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-4 h-4 ml-2" />
+            ייצוא
           </Button>
           <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Person
+            <Plus className="w-4 h-4 ml-2" />
+            הוסף איש
           </Button>
         </div>
       </div>
@@ -153,28 +153,28 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
       {/* Search and Filters */}
       <div className="flex gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or phone..."
+            placeholder="חפש לפי שם, אימייל או טלפון..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pr-10"
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              Status
+              <Filter className="w-4 h-4 ml-2" />
+              סטטוס
               {selectedStatuses.length > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="mr-2">
                   {selectedStatuses.length}
                 </Badge>
               )}
-              <ChevronDown className="w-4 h-4 ml-2" />
+              <ChevronDown className="w-4 h-4 mr-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="end">
             {allStatuses.map((status) => (
               <DropdownMenuCheckboxItem
                 key={status}
@@ -188,7 +188,7 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
         </DropdownMenu>
         {selectedStatuses.length > 0 && (
           <Button variant="ghost" onClick={() => setSelectedStatuses([])}>
-            Clear filters
+            נקה מסננים
           </Button>
         )}
       </div>
@@ -196,40 +196,40 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
       {/* People Table */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">All People</CardTitle>
+          <CardTitle className="text-base">כל האנשים</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
-              Loading people...
+              טוען אנשים...
             </div>
           ) : filteredPeople.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               {searchQuery || selectedStatuses.length > 0
-                ? "No people match your search criteria."
-                : "No people found. Add someone to get started."}
+                ? "לא נמצאו אנשים התואמים את החיפוש."
+                : "לא נמצאו אנשים. הוסף מישהו כדי להתחיל."}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Name
+                    שם
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Email
+                    אימייל
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Phone
+                    טלפון
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Program
+                    תוכנית
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Status
+                    סטטוס
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Added
+                    נוסף
                   </TableHead>
                 </TableRow>
               </TableHeader>

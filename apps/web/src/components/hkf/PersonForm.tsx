@@ -89,64 +89,64 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Person" : "Add Person"}</DialogTitle>
+          <DialogTitle>{isEdit ? "עריכת איש" : "הוספת איש"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
+                <Label htmlFor="firstName">שם פרטי *</Label>
                 <Input
                   id="firstName"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="John"
+                  placeholder="ישראל"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+                <Label htmlFor="lastName">שם משפחה *</Label>
                 <Input
                   id="lastName"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Doe"
+                  placeholder="ישראלי"
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">אימייל</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@example.com"
+                placeholder="israel@example.com"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">טלפון</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 123-4567"
+                placeholder="050-123-4567"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-row-reverse gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              ביטול
             </Button>
             <Button type="submit" disabled={isLoading || !firstName.trim() || !lastName.trim()}>
-              {isLoading ? "Saving..." : isEdit ? "Save Changes" : "Add Person"}
+              {isLoading ? "שומר..." : isEdit ? "שמור שינויים" : "הוסף איש"}
             </Button>
           </DialogFooter>
         </form>

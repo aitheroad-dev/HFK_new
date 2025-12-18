@@ -27,27 +27,27 @@ const statusVariants: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  applied: "Applied",
-  interviewing: "Interviewing",
-  accepted: "Accepted",
-  enrolled: "Enrolled",
-  pending: "Pending",
-  active: "Active",
+  applied: "הגיש מועמדות",
+  interviewing: "בראיון",
+  accepted: "התקבל",
+  enrolled: "רשום",
+  pending: "ממתין",
+  active: "פעיל",
 };
 
 function getAiAction(person: PersonWithEnrollment): string {
   const status = person.enrollment_status || person.status;
   switch (status) {
     case "applied":
-      return "Schedule interview";
+      return "קבע ראיון";
     case "interviewing":
-      return "Record outcome";
+      return "רשום תוצאה";
     case "accepted":
-      return "Send welcome email";
+      return "שלח מייל קבלה";
     case "enrolled":
-      return "View progress";
+      return "צפה בהתקדמות";
     default:
-      return "View profile";
+      return "צפה בפרופיל";
   }
 }
 
@@ -57,7 +57,7 @@ function getInitials(firstName: string, lastName: string): string {
 
 function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return new Date(dateString).toLocaleDateString("he-IL", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -130,7 +130,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
   const handleExport = () => {
     if (!people || people.length === 0) return;
 
-    const headers = ["First Name", "Last Name", "Email", "Phone", "Status", "Program", "Applied Date"];
+    const headers = ["שם פרטי", "שם משפחה", "אימייל", "טלפון", "סטטוס", "תוכנית", "תאריך הגשה"];
     const csvContent = [
       headers.join(","),
       ...people.map((p) => [
@@ -156,9 +156,9 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-primary">Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-primary">לוח בקרה</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            CRM Overview - Real-time data from Supabase
+            סקירת CRM - נתונים בזמן אמת
           </p>
         </div>
         <div className="flex gap-2">
@@ -166,12 +166,12 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
             <RefreshCw className="w-4 h-4" />
           </Button>
           <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-4 h-4 ml-2" />
+            ייצוא
           </Button>
           <Button onClick={onAddPerson}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Person
+            <Plus className="w-4 h-4 ml-2" />
+            הוסף איש
           </Button>
         </div>
       </div>
@@ -179,25 +179,25 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total People"
+          title="סה״כ אנשים"
           value={stats?.totalPeople.toString() || "0"}
-          change={stats?.recentActivity.newThisWeek ? `+${stats.recentActivity.newThisWeek} this week` : undefined}
+          change={stats?.recentActivity.newThisWeek ? `+${stats.recentActivity.newThisWeek} השבוע` : undefined}
           trend={stats?.recentActivity.newThisWeek ? "up" : "neutral"}
           isLoading={statsLoading}
         />
         <StatCard
-          title="Pending Interviews"
+          title="ראיונות ממתינים"
           value={stats?.pendingInterviews.toString() || "0"}
-          change={stats?.recentActivity.interviewsToday ? `${stats.recentActivity.interviewsToday} today` : undefined}
+          change={stats?.recentActivity.interviewsToday ? `${stats.recentActivity.interviewsToday} היום` : undefined}
           isLoading={statsLoading}
         />
         <StatCard
-          title="Accepted"
+          title="התקבלו"
           value={stats?.acceptedCount.toString() || "0"}
           isLoading={statsLoading}
         />
         <StatCard
-          title="Payments"
+          title="תשלומים"
           value={stats?.totalPayments ? formatCurrency(stats.totalPayments) : "0"}
           isLoading={statsLoading}
         />
@@ -208,27 +208,27 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">
-              People {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
+              אנשים {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
             </CardTitle>
             {onViewPeople && (
               <Button variant="link" className="h-auto p-0 text-sm" onClick={onViewPeople}>
-                View all
+                צפה בכולם
               </Button>
             )}
           </div>
           <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-auto">
             <TabsList className="h-8">
               <TabsTrigger value="all" className="text-xs px-3">
-                All
+                הכל
               </TabsTrigger>
               <TabsTrigger value="applied" className="text-xs px-3">
-                Applied
+                הגישו מועמדות
               </TabsTrigger>
               <TabsTrigger value="interviewing" className="text-xs px-3">
-                Interviewing
+                בראיון
               </TabsTrigger>
               <TabsTrigger value="accepted" className="text-xs px-3">
-                Accepted
+                התקבלו
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -236,32 +236,32 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
         <CardContent className="p-0">
           {peopleLoading ? (
             <div className="p-8 text-center text-muted-foreground">
-              Loading people from database...
+              טוען אנשים מהמסד נתונים...
             </div>
           ) : !filteredPeople?.length ? (
             <div className="p-8 text-center text-muted-foreground">
               {statusFilter === "all"
-                ? "No people found. Add someone to get started."
-                : `No people with status "${statusFilter}" found.`}
+                ? "לא נמצאו אנשים. הוסף מישהו כדי להתחיל."
+                : `לא נמצאו אנשים בסטטוס "${statusLabels[statusFilter] || statusFilter}".`}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Person
+                    שם
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Program
+                    תוכנית
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Status
+                    סטטוס
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    Added
+                    נוסף
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    AI Actions
+                    פעולות AI
                   </TableHead>
                   <TableHead className="w-10"></TableHead>
                 </TableRow>
@@ -287,7 +287,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
                               {person.first_name} {person.last_name}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {person.email || "No email"}
+                              {person.email || "אין אימייל"}
                             </div>
                           </div>
                         </div>
