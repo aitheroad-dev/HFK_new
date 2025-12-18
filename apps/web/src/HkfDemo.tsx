@@ -74,8 +74,8 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
 
   return (
     <AppLayout currentPage={currentPage} onNavigate={onNavigate} onSearch={onGlobalSearchChange} searchQuery={globalSearch}>
-      <div className="flex h-full">
-        <div className="flex-1">
+      <div className="flex h-full -m-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {currentPage === "dashboard" && (
             <Dashboard
               onViewPeople={() => onNavigate("people")}

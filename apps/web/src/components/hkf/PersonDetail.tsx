@@ -98,7 +98,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
   return (
     <div
       className={cn(
-        "w-[400px] bg-card border-r border-border flex flex-col h-full",
+        "w-[400px] bg-card border-l border-border flex flex-col shrink-0",
         className
       )}
     >
