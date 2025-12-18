@@ -38,7 +38,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
   return (
     <aside
       className={cn(
-        "w-[22rem] bg-card border-r border-border transition-all duration-200",
+        "w-[22rem] bg-card border-l border-border transition-all duration-200",
         "flex flex-col h-full z-50",
         className
       )}
