@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { sessionManager, type ChatResponse } from './ai/agent.js';
 import { requireAuth, verifyWebSocketToken, type AuthUser } from './auth.js';
+import { sendEmail, checkEmailStatus } from './integrations/email.js';
 
 // WebSocket message validation schemas
 const WsMessageSchema = z.object({
@@ -52,6 +53,79 @@ await fastify.register(rateLimit, {
 // Health check endpoint (no rate limit needed)
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+// ============================================================
+// EMAIL TEST ENDPOINTS (for debugging Brevo integration)
+// ============================================================
+
+// Check Brevo configuration status
+fastify.get('/test/email-status', async () => {
+  const result = await checkEmailStatus();
+  return {
+    timestamp: new Date().toISOString(),
+    brevoConfigured: result.configured,
+    authenticated: result.authenticated,
+    senderEmail: result.senderEmail,
+    senderName: result.senderName,
+    message: result.message,
+    envVars: {
+      BREVO_API_KEY: process.env.BREVO_API_KEY ? '✅ Set' : '❌ Missing',
+      BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || '❌ Missing',
+      BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || '❌ Missing',
+    }
+  };
+});
+
+// Send a test email directly (bypass JARVIS)
+fastify.get<{ Querystring: { to?: string } }>('/test/send-email', async (request, reply) => {
+  const to = request.query.to;
+
+  if (!to) {
+    return reply.status(400).send({
+      error: 'Missing "to" parameter',
+      usage: '/test/send-email?to=your@email.com'
+    });
+  }
+
+  console.log(`[TEST] Attempting to send test email to: ${to}`);
+
+  try {
+    const result = await sendEmail({
+      to: [{ email: to, name: 'Test Recipient' }],
+      subject: 'HKF CRM Test Email',
+      htmlContent: `
+        <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>בדיקת מערכת</h2>
+          <p>זוהי הודעת בדיקה מ-HKF CRM.</p>
+          <p>אם קיבלת הודעה זו, אינטגרציית Brevo עובדת!</p>
+          <hr>
+          <p style="color: #666; font-size: 12px;">
+            Sent at: ${new Date().toISOString()}<br>
+            Environment: ${process.env.NODE_ENV || 'development'}
+          </p>
+        </div>
+      `,
+      textContent: 'בדיקת מערכת - זוהי הודעת בדיקה מ-HKF CRM.',
+      tags: ['test', 'debug'],
+    });
+
+    console.log(`[TEST] Email result:`, result);
+
+    return {
+      success: result.success,
+      messageId: result.messageId,
+      to,
+      timestamp: new Date().toISOString(),
+      details: result,
+    };
+  } catch (error) {
+    console.error(`[TEST] Email error:`, error);
+    return reply.status(500).send({
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
 });
 
 // HKF Organization ID - Single tenant deployment
