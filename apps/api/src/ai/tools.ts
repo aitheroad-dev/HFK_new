@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import { db, people, programs, interviews, enrollments, payments, events, eventRegistrations, escalations, communications } from '@generic-ai-crm/db';
 import { eq, and, ilike, or, gte, lte, sql, count } from 'drizzle-orm';
+import { createCalendarEvent as googleCreateCalendarEvent, checkCalendarStatus } from '../integrations/calendar.js';
+import { sendEmail, sendBulkEmail, emailTemplates, checkEmailStatus } from '../integrations/email.js';
 
 /**
  * AI Tool definitions for JARVIS
@@ -586,7 +588,7 @@ export function getToolDefinitions(): Tool[] {
     },
     {
       name: 'send_message',
-      description: 'Send a message to a person via email, WhatsApp, or SMS. Note: Currently returns a stub response - actual messaging integration coming soon.',
+      description: 'Send a message to a person via email, WhatsApp, or SMS. Email is fully integrated via Brevo. WhatsApp and SMS are pending integration.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -741,7 +743,7 @@ export function getToolDefinitions(): Tool[] {
     // ========== NEW TOOLS (9 additional) ==========
     {
       name: 'send_bulk_message',
-      description: 'Send a message to multiple recipients filtered by audience criteria. Supports email, WhatsApp, or SMS. Use {{first_name}} and {{last_name}} for personalization.',
+      description: 'Send a message to multiple recipients filtered by audience criteria. Email is fully integrated via Brevo. WhatsApp and SMS are pending. Use {{first_name}} and {{last_name}} for personalization.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -1332,7 +1334,7 @@ async function handleUpdateEnrollmentStatus(input: UpdateEnrollmentStatusInput, 
 }
 
 async function handleSendMessage(input: SendMessageInput, organizationId: string) {
-  const { personId, channel, subject, message } = input;
+  const { personId, channel, subject, message, templateId } = input;
 
   // Verify person exists
   const personResult = await db
@@ -1347,8 +1349,97 @@ async function handleSendMessage(input: SendMessageInput, organizationId: string
 
   const person = personResult[0];
 
-  // TODO: Implement actual messaging integration
-  // For now, return a stub response
+  // Handle email channel with Brevo
+  if (channel === 'email') {
+    if (!person.email) {
+      return {
+        success: false,
+        message: 'Cannot send email: person has no email address',
+        personId,
+      };
+    }
+
+    // Build email content - check for template
+    let emailSubject = subject || 'הודעה מ-HKF';
+    let htmlContent = `<div dir="rtl" style="font-family: Arial, sans-serif;">${message.replace(/\n/g, '<br>')}</div>`;
+    let textContent = message;
+
+    // Handle predefined templates
+    if (templateId) {
+      const templateName = templateId as keyof typeof emailTemplates;
+      if (templateName in emailTemplates) {
+        // Parse template parameters from message (JSON format expected)
+        try {
+          const params = JSON.parse(message);
+          const template = (emailTemplates[templateName] as Function)(params);
+          emailSubject = template.subject;
+          htmlContent = template.htmlContent;
+          textContent = template.textContent;
+        } catch {
+          // If message is not JSON, use it as custom message in template
+          console.log(`[Email] Using templateId ${templateId} with plain message`);
+        }
+      }
+    }
+
+    // Send via Brevo
+    const emailResult = await sendEmail({
+      to: [{ email: person.email, name: `${person.firstName} ${person.lastName}` }],
+      subject: emailSubject,
+      htmlContent,
+      textContent,
+      tags: ['crm', 'jarvis'],
+    });
+
+    // Log communication
+    await db
+      .insert(communications)
+      .values({
+        organizationId,
+        personId: person.id,
+        channel: 'email',
+        direction: 'outbound',
+        subject: emailSubject,
+        message: textContent,
+        status: emailResult.success ? 'sent' : 'failed',
+        externalId: emailResult.messageId || null,
+      });
+
+    if (emailResult.success) {
+      return {
+        success: true,
+        message: `Email sent to ${person.firstName} ${person.lastName}`,
+        details: {
+          channel: 'email',
+          recipient: {
+            id: person.id,
+            name: `${person.firstName} ${person.lastName}`,
+            email: person.email,
+          },
+          subject: emailSubject,
+          messageId: emailResult.messageId,
+          status: 'sent',
+        },
+      };
+    } else {
+      return {
+        success: false,
+        message: emailResult.message,
+        error: emailResult.error,
+        details: {
+          channel: 'email',
+          recipient: {
+            id: person.id,
+            name: `${person.firstName} ${person.lastName}`,
+            email: person.email,
+          },
+          status: 'failed',
+        },
+      };
+    }
+  }
+
+  // Handle WhatsApp and SMS channels (still stub - pending Naama Bot integration)
   return {
     success: true,
     message: `Message queued for delivery via ${channel}`,
@@ -1363,7 +1454,7 @@ async function handleSendMessage(input: SendMessageInput, organizationId: string
       subject: subject || null,
       messagePreview: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
       status: 'pending_integration',
-      note: 'Messaging adapter not yet configured. Message logged but not sent.',
+      note: `${channel === 'whatsapp' ? 'Naama Bot' : 'SMS'} adapter not yet configured. Message logged but not sent.`,
     },
   };
 }
@@ -1597,7 +1688,75 @@ async function handleSendBulkMessage(input: SendBulkMessageInput, organizationId
     recipients = recipients.filter(p => enrolledIds.has(p.id));
   }
 
-  // Log each communication (but don't actually send - integration pending)
+  // Handle email channel with Brevo
+  if (channel === 'email') {
+    // Filter recipients with valid emails
+    const emailRecipients = recipients.filter(p => p.email);
+
+    if (emailRecipients.length === 0) {
+      return {
+        success: false,
+        message: 'No recipients with valid email addresses found',
+        recipientCount: 0,
+      };
+    }
+
+    // Build HTML content with RTL support
+    const htmlTemplate = `<div dir="rtl" style="font-family: Arial, sans-serif;">${message.replace(/\n/g, '<br>')}</div>`;
+
+    // Use the bulk email function
+    const bulkResult = await sendBulkEmail(
+      emailRecipients.map(p => ({
+        email: p.email!,
+        name: `${p.firstName} ${p.lastName}`,
+        params: {
+          first_name: p.firstName,
+          last_name: p.lastName,
+        },
+      })),
+      subject || 'הודעה מ-HKF',
+      htmlTemplate,
+      { tags: ['crm', 'jarvis', 'bulk'] }
+    );
+
+    // Log communications
+    const communicationLogs = [];
+    for (const person of emailRecipients) {
+      const personalizedMessage = message
+        .replace(/\{\{first_name\}\}/g, person.firstName)
+        .replace(/\{\{last_name\}\}/g, person.lastName);
+
+      const log = await db
+        .insert(communications)
+        .values({
+          organizationId,
+          personId: person.id,
+          channel: 'email',
+          direction: 'outbound',
+          subject: subject || null,
+          message: personalizedMessage,
+          status: bulkResult.success ? 'sent' : 'failed',
+        })
+        .returning();
+
+      communicationLogs.push({
+        personId: person.id,
+        name: `${person.firstName} ${person.lastName}`,
+        email: person.email,
+        communicationId: log[0].id,
+      });
+    }
+
+    return {
+      success: bulkResult.success,
+      message: bulkResult.message,
+      recipientCount: emailRecipients.length,
+      communications: communicationLogs.slice(0, 10), // Return first 10 for preview
+      error: bulkResult.error,
+    };
+  }
+
+  // For WhatsApp and SMS channels (still stub - pending integration)
   const communicationLogs = [];
   for (const person of recipients) {
     // Personalize message
@@ -1631,7 +1790,7 @@ async function handleSendBulkMessage(input: SendBulkMessageInput, organizationId
     message: `Bulk message queued for ${recipients.length} recipients via ${channel}`,
     recipientCount: recipients.length,
     communications: communicationLogs.slice(0, 10), // Return first 10 for preview
-    note: 'Messaging adapter not yet configured. Messages logged but not sent.',
+    note: `${channel === 'whatsapp' ? 'Naama Bot' : 'SMS'} adapter not yet configured. Messages logged but not sent.`,
   };
 }
 
@@ -1861,23 +2020,52 @@ async function handleCreateCalendarEvent(input: CreateCalendarEventInput, organi
 
   const allAttendees = [...new Set([...attendeeEmails, ...additionalEmails])];
 
-  // TODO: Integrate with Google Calendar API
-  // For now, return a stub response
-  return {
-    success: true,
-    message: `Calendar event "${title}" created`,
-    calendarEvent: {
-      id: `cal_${Date.now()}`,
-      title,
-      description: description || null,
-      startTime,
-      endTime,
-      location: location || null,
-      attendees: allAttendees,
-      status: 'pending_integration',
-      note: 'Google Calendar adapter not yet configured. Event not actually created.',
-    },
-  };
+  // Use the Google Calendar integration
+  const calendarResult = await googleCreateCalendarEvent({
+    title,
+    description,
+    startTime,
+    endTime,
+    location,
+    attendeeEmails: allAttendees,
+    sendNotifications: true,
+  });
+
+  if (calendarResult.success) {
+    return {
+      success: true,
+      message: calendarResult.message,
+      calendarEvent: {
+        id: calendarResult.eventId || `cal_${Date.now()}`,
+        title,
+        description: description || null,
+        startTime,
+        endTime,
+        location: location || null,
+        attendees: allAttendees,
+        link: calendarResult.eventLink,
+        status: 'created',
+      },
+    };
+  } else {
+    // Calendar not configured - provide helpful feedback
+    return {
+      success: false,
+      message: calendarResult.message,
+      error: calendarResult.error,
+      calendarEvent: {
+        id: `cal_pending_${Date.now()}`,
+        title,
+        description: description || null,
+        startTime,
+        endTime,
+        location: location || null,
+        attendees: allAttendees,
+        status: 'pending_configuration',
+        note: 'Calendar event logged but not synced. Configure GOOGLE_SERVICE_ACCOUNT_KEY to enable Google Calendar sync.',
+      },
+    };
+  }
 }
 
 async function handleUploadFile(input: UploadFileInput, organizationId: string) {

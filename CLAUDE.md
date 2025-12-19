@@ -111,9 +111,15 @@ The HKF CRM is a **complete working application** with the full candidate lifecy
 
 ### Integrations (Feature Work)
 
-1. **Brevo Email Integration** - Connect `useNotifications.ts` to Brevo API
-2. **Meshulam Payment Integration** - Payment links and tracking (requires HKF credentials)
-3. **Google Calendar Integration** - Sync interviews to calendar (stub exists)
+1. **Brevo Email Integration** - COMPLETE
+   - `src/integrations/email.ts` with full Brevo API integration
+   - 5 Hebrew email templates (acceptance, rejection, interviewScheduled, interviewReminder, paymentReminder)
+   - Integrated into `send_message` and `send_bulk_message` AI tools
+2. **Google Calendar Integration** - COMPLETE (needs service account key)
+   - `src/integrations/calendar.ts` with Google Calendar API
+   - Set `GOOGLE_SERVICE_ACCOUNT_KEY` env var to enable
+3. **Meshulam Payment Integration** - Pending (requires HKF credentials)
+4. **Naama Bot WhatsApp Integration** - Pending (requires HKF credentials)
 
 ### Configuration (Manual Steps)
 
