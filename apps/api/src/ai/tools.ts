@@ -937,14 +937,39 @@ async function handleSearchPeople(input: SearchPeopleInput, organizationId: stri
 
   if (query) {
     const searchPattern = `%${query}%`;
-    conditions.push(
-      or(
-        ilike(people.firstName, searchPattern),
-        ilike(people.lastName, searchPattern),
-        ilike(people.email, searchPattern),
-        ilike(people.phone, searchPattern)
-      )!
-    );
+
+    // Build search conditions - match the full query against each field
+    const searchConditions = [
+      ilike(people.firstName, searchPattern),
+      ilike(people.lastName, searchPattern),
+      ilike(people.email, searchPattern),
+      ilike(people.phone, searchPattern),
+      // Also try to match firstName + lastName concatenated (for full name searches)
+      sql`(${people.firstName} || ' ' || ${people.lastName}) ILIKE ${searchPattern}`,
+    ];
+
+    // If query has multiple words (space-separated), also try matching each part
+    const queryParts = query.trim().split(/\s+/);
+    if (queryParts.length >= 2) {
+      // Try first part as firstName and second part as lastName
+      const firstPart = `%${queryParts[0]}%`;
+      const secondPart = `%${queryParts.slice(1).join(' ')}%`;
+      searchConditions.push(
+        and(
+          ilike(people.firstName, firstPart),
+          ilike(people.lastName, secondPart)
+        )!
+      );
+      // Also try reverse (lastName firstName order)
+      searchConditions.push(
+        and(
+          ilike(people.lastName, firstPart),
+          ilike(people.firstName, secondPart)
+        )!
+      );
+    }
+
+    conditions.push(or(...searchConditions)!);
   }
 
   const results = await db
