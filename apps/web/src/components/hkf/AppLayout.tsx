@@ -186,19 +186,18 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
               />
             </div>
 
-            <div className="flex items-center gap-2 mr-auto">
+            <div className="flex items-center gap-2 shrink-0">
               {/* JARVIS button - always visible */}
               <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
-              {/* Avatar and logout - hidden on mobile (available in More menu) */}
+              {/* Avatar - visible on all screens */}
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
+              </Avatar>
+              {/* Logout button - hidden on mobile (available in More menu) */}
               {!isMobile && (
-                <>
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
-                  </Avatar>
-                  <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </>
+                <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
+                  <LogOut className="w-4 h-4" />
+                </Button>
               )}
             </div>
           </header>
