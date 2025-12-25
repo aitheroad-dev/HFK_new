@@ -82,20 +82,22 @@ interface StatCardProps {
 function StatCard({ title, value, change, trend, isLoading }: StatCardProps) {
   return (
     <Card className="py-0">
-      <CardContent className="p-3">
-        <div className="text-xs text-muted-foreground truncate">{title}</div>
-        {isLoading ? (
-          <div className="h-6 w-10 bg-muted animate-pulse rounded mt-1" />
-        ) : (
-          <div className="text-xl font-bold text-primary mt-1 truncate">{value}</div>
-        )}
-        {change && (
-          <p
-            className={`text-xs mt-0.5 truncate ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
-          >
-            {change}
-          </p>
-        )}
+      <CardContent className="px-3 py-2 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">{title}</div>
+        <div className="flex items-center gap-2">
+          {isLoading ? (
+            <div className="h-5 w-8 bg-muted animate-pulse rounded" />
+          ) : (
+            <div className="text-lg font-bold text-primary">{value}</div>
+          )}
+          {change && (
+            <span
+              className={`text-xs ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
+            >
+              {change}
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
