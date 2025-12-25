@@ -62,19 +62,19 @@ const navigationItems = {
 
 export function AppLayout({ children, currentPage = "dashboard", onNavigate, onSearch, searchQuery = "" }: AppLayoutProps) {
   const isMobile = useIsMobile();
-  // Start closed, then open on desktop after mount
+  // Start closed, only open on desktop after we confirm screen size
   const [isJarvisOpen, setIsJarvisOpen] = useState(false);
-  const [hasInitializedJarvis, setHasInitializedJarvis] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
 
-  // Auto-open JARVIS on desktop only (after we know the screen size)
+  // Auto-open JARVIS on desktop only - check actual window width
   useEffect(() => {
-    if (!hasInitializedJarvis) {
-      setIsJarvisOpen(!isMobile);
-      setHasInitializedJarvis(true);
+    // Only run once on mount, check actual screen width
+    const isDesktop = window.innerWidth >= 768;
+    if (isDesktop) {
+      setIsJarvisOpen(true);
     }
-  }, [isMobile, hasInitializedJarvis]);
+  }, []); // Empty deps - only run once on mount
 
   // Get initials from user email or name
   const getUserInitials = () => {
