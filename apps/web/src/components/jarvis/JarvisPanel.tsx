@@ -38,8 +38,12 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
   return (
     <aside
       className={cn(
-        "w-full sm:w-[22rem] max-w-full bg-card border-l border-border transition-all duration-200",
-        "flex flex-col h-full z-[100] fixed inset-0 sm:relative sm:inset-auto",
+        "bg-card border-l border-border transition-all duration-200",
+        "flex flex-col z-[100]",
+        // Mobile: fixed fullscreen overlay
+        "fixed inset-0 w-screen h-screen",
+        // Desktop: relative sidebar
+        "sm:relative sm:inset-auto sm:w-[22rem] sm:h-full",
         className
       )}
     >
