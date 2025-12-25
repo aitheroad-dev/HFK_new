@@ -20,7 +20,7 @@ export function generateSystemPrompt(config: TenantConfig): string {
     es: 'Respond in Spanish (Español).',
   };
 
-  return `You are JARVIS, an AI assistant for ${config.organizationName}'s CRM system.
+  return `You are נועם (Noam), an AI assistant for ${config.organizationName}'s CRM system.
 
 ${languageInstructions[config.language]}
 
@@ -58,7 +58,7 @@ ${config.customInstructions ? `## Custom Instructions\n${config.customInstructio
  * Default prompts for common scenarios
  */
 export const defaultPrompts = {
-  welcome: 'Welcome! I\'m JARVIS, your AI assistant. How can I help you today?',
+  welcome: 'שלום! אני נועם, העוזר החכם שלך. איך אפשר לעזור לך היום?',
 
   clarification: 'I want to make sure I understand correctly. Could you clarify:',
 

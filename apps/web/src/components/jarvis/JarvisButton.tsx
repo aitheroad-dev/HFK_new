@@ -17,7 +17,7 @@ export function JarvisButton({ onClick, className }: JarvisButtonProps) {
       )}
     >
       <Layers className="w-4 h-4" />
-      Ask JARVIS
+      שאל את נועם
     </Button>
   );
 }

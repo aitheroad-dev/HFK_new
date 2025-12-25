@@ -70,8 +70,8 @@ export function useJarvis() {
               role: "assistant",
               content:
                 data.content ||
-                "Shalom! I'm JARVIS, your AI assistant. How can I help you today?",
-              suggestions: ["Show recent candidates", "Dashboard summary", "Search people"],
+                "שלום! אני נועם, העוזר החכם שלך. איך אפשר לעזור לך היום?",
+              suggestions: ["הצג מועמדים אחרונים", "סיכום לוח בקרה", "חפש אנשים"],
             },
           ]);
         } else if (data.type === "message") {
@@ -163,7 +163,7 @@ export function useJarvis() {
         {
           id: "loading",
           role: "assistant",
-          content: "Thinking...",
+          content: "חושב...",
           isLoading: true,
         },
       ]);
@@ -194,8 +194,8 @@ export function useJarvis() {
       {
         id: "welcome",
         role: "assistant",
-        content: "Conversation cleared. How can I help you?",
-        suggestions: ["Show recent candidates", "Dashboard summary", "Search people"],
+        content: "השיחה נוקתה. איך אפשר לעזור לך?",
+        suggestions: ["הצג מועמדים אחרונים", "סיכום לוח בקרה", "חפש אנשים"],
       },
     ]);
   }, [sessionId]);
@@ -223,18 +223,18 @@ export function useJarvis() {
 function generateSuggestions(content: string): string[] {
   const lower = content.toLowerCase();
 
-  if (lower.includes("person") || lower.includes("candidate")) {
-    return ["View details", "Schedule interview", "Send message"];
+  if (lower.includes("person") || lower.includes("candidate") || lower.includes("אדם") || lower.includes("מועמד")) {
+    return ["הצג פרטים", "קבע ראיון", "שלח הודעה"];
   }
-  if (lower.includes("interview")) {
-    return ["Record outcome", "Reschedule", "View candidates"];
+  if (lower.includes("interview") || lower.includes("ראיון")) {
+    return ["רשום תוצאה", "קבע מחדש", "הצג מועמדים"];
   }
-  if (lower.includes("payment")) {
-    return ["Send reminder", "View history", "Export report"];
+  if (lower.includes("payment") || lower.includes("תשלום")) {
+    return ["שלח תזכורת", "הצג היסטוריה", "ייצא דוח"];
   }
-  if (lower.includes("program")) {
-    return ["View enrollments", "Create cohort", "Program stats"];
+  if (lower.includes("program") || lower.includes("תוכנית")) {
+    return ["הצג הרשמות", "צור מחזור", "סטטיסטיקות תוכנית"];
   }
 
-  return ["More details", "Back to dashboard", "Another question"];
+  return ["פרטים נוספים", "חזור ללוח בקרה", "שאלה נוספת"];
 }

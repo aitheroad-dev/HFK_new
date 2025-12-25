@@ -55,7 +55,7 @@ export class ConversationSession {
   }
 
   private getDefaultSystemPrompt(): string {
-    return `אתה JARVIS, עוזר AI חכם לניהול מערכת CRM.
+    return `אתה נועם, עוזר AI חכם לניהול מערכת CRM.
 אתה עוזר למשתמשים לנהל אנשים, תוכניות, ראיונות, תשלומים ותקשורת.
 
 ענה תמיד בעברית. השתמש בפורמט טקסט מימין לשמאל.

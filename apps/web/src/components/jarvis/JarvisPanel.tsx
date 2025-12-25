@@ -38,8 +38,8 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
   return (
     <aside
       className={cn(
-        "w-[22rem] bg-card border-l border-border transition-all duration-200",
-        "flex flex-col h-full z-50",
+        "w-full sm:w-[22rem] max-w-full bg-card border-l border-border transition-all duration-200",
+        "flex flex-col h-full z-50 fixed sm:relative inset-0 sm:inset-auto",
         className
       )}
     >
@@ -49,7 +49,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
           <Layers className="w-[18px] h-[18px]" />
         </div>
         <div className="flex-1">
-          <div className="font-semibold text-primary">JARVIS</div>
+          <div className="font-semibold text-primary">נועם</div>
           <div className="flex items-center gap-1.5 text-xs">
             {isConnected ? (
               <>
@@ -135,7 +135,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
       <div className="shrink-0 p-4 border-t border-border bg-card">
         {!isConnected && (
           <div className="mb-2 text-xs text-destructive text-center">
-            מתחבר מחדש ל-JARVIS...
+            מתחבר מחדש לנועם...
           </div>
         )}
         <div className="flex gap-2 p-2 bg-muted rounded-lg border border-border focus-within:border-primary">
@@ -143,7 +143,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={isConnected ? "שאל את JARVIS כל דבר..." : "ממתין לחיבור..."}
+            placeholder={isConnected ? "שאל את נועם כל דבר..." : "ממתין לחיבור..."}
             className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 px-2"
             disabled={!isConnected || isLoading}
           />
