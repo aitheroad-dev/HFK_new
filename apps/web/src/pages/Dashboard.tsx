@@ -148,7 +148,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
   };
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-6 w-full max-w-full">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -173,7 +173,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
         <StatCard
           title="סה״כ אנשים"
           value={stats?.totalPeople.toString() || "0"}
@@ -200,34 +200,36 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* People Table */}
-      <Card className="min-w-0 overflow-hidden">
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
+      <Card className="w-full">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
           <div className="flex items-center gap-4">
-            <CardTitle className="text-base">
+            <CardTitle className="text-base whitespace-nowrap">
               אנשים {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
             </CardTitle>
             {onViewPeople && (
-              <Button variant="link" className="h-auto p-0 text-sm" onClick={onViewPeople}>
+              <Button variant="link" className="h-auto p-0 text-sm whitespace-nowrap" onClick={onViewPeople}>
                 צפה בכולם
               </Button>
             )}
           </div>
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-full sm:w-auto overflow-x-auto">
-            <TabsList className="h-8 w-full sm:w-auto">
-              <TabsTrigger value="all" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
-                הכל
-              </TabsTrigger>
-              <TabsTrigger value="applied" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
-                הגישו מועמדות
-              </TabsTrigger>
-              <TabsTrigger value="interviewing" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
-                בראיון
-              </TabsTrigger>
-              <TabsTrigger value="accepted" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
-                התקבלו
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="w-full sm:w-auto overflow-x-auto">
+            <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+              <TabsList className="h-8 inline-flex w-auto min-w-full sm:min-w-0">
+                <TabsTrigger value="all" className="text-xs px-2 sm:px-3">
+                  הכל
+                </TabsTrigger>
+                <TabsTrigger value="applied" className="text-xs px-2 sm:px-3">
+                  הגישו מועמדות
+                </TabsTrigger>
+                <TabsTrigger value="interviewing" className="text-xs px-2 sm:px-3">
+                  בראיון
+                </TabsTrigger>
+                <TabsTrigger value="accepted" className="text-xs px-2 sm:px-3">
+                  התקבלו
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {peopleLoading ? (

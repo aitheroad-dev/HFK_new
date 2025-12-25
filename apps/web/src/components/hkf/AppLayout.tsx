@@ -203,7 +203,7 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
           </header>
 
           {/* Main content area - add bottom padding on mobile for nav */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20 md:pb-6 bg-muted/30">{children}</main>
+          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-20 md:pb-6 bg-muted/30">{children}</main>
         </div>
 
         {/* JARVIS Panel - Left side (last in flex = left in RTL) */}
