@@ -148,7 +148,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -200,7 +200,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* People Table */}
-      <Card>
+      <Card className="min-w-0 overflow-hidden">
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">
