@@ -128,6 +128,73 @@ fastify.get<{ Querystring: { to?: string } }>('/test/send-email', async (request
   }
 });
 
+// Test search endpoint to debug search_people issues
+fastify.get<{ Querystring: { q?: string } }>('/test/search', async (request, reply) => {
+  const query = request.query.q || '';
+  const HKF_ORG = process.env.HKF_ORG_ID || '';
+
+  console.log(`[TEST SEARCH] query="${query}", orgId="${HKF_ORG}"`);
+
+  // Import db from tools.ts to use the same search logic
+  // For now, do a direct Supabase query
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!
+  );
+
+  // First get all people to see what's in the DB
+  const { data: allPeople, error: allError } = await supabase
+    .from('people')
+    .select('id, first_name, last_name, email, organization_id')
+    .eq('organization_id', HKF_ORG)
+    .limit(20);
+
+  if (allError) {
+    return reply.status(500).send({ error: allError.message });
+  }
+
+  // Now try the search
+  const searchPattern = `%${query}%`;
+  const queryParts = query.trim().split(/\s+/);
+
+  let searchResults: typeof allPeople = [];
+
+  if (query) {
+    // Try the concatenated name search like we do in tools.ts
+    const { data: nameSearch, error: nameErr } = await supabase
+      .from('people')
+      .select('id, first_name, last_name, email, organization_id')
+      .eq('organization_id', HKF_ORG)
+      .or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern}`);
+
+    if (!nameErr) searchResults = nameSearch || [];
+
+    // Also try matching split parts
+    if (queryParts.length >= 2) {
+      const { data: splitSearch } = await supabase
+        .from('people')
+        .select('id, first_name, last_name, email, organization_id')
+        .eq('organization_id', HKF_ORG)
+        .ilike('first_name', `%${queryParts[0]}%`)
+        .ilike('last_name', `%${queryParts[1]}%`);
+
+      if (splitSearch && splitSearch.length > 0) {
+        searchResults = [...(searchResults || []), ...splitSearch];
+      }
+    }
+  }
+
+  return {
+    timestamp: new Date().toISOString(),
+    query,
+    queryParts,
+    orgId: HKF_ORG,
+    allPeopleInOrg: allPeople,
+    searchResults,
+  };
+});
+
 // HKF Organization ID - Single tenant deployment
 // SECURITY: No fallback - must be explicitly configured
 const HKF_ORG_ID = process.env.HKF_ORG_ID;

@@ -588,13 +588,13 @@ export function getToolDefinitions(): Tool[] {
     },
     {
       name: 'send_message',
-      description: 'Send a message to a person via email, WhatsApp, or SMS. Email is fully integrated via Brevo. WhatsApp and SMS are pending integration.',
+      description: 'Send a message to a person via email, WhatsApp, or SMS. Email is fully integrated via Brevo. WhatsApp and SMS are pending integration. IMPORTANT: You must first use search_people to find the person by name and get their personId before calling this tool.',
       input_schema: {
         type: 'object' as const,
         properties: {
           personId: {
             type: 'string',
-            description: 'UUID of the person to message',
+            description: 'UUID of the person to message. REQUIRED: First use search_people to find this ID by searching for the person\'s name.',
           },
           channel: {
             type: 'string',
@@ -929,6 +929,8 @@ export function getToolDefinitions(): Tool[] {
 async function handleSearchPeople(input: SearchPeopleInput, organizationId: string) {
   const { query, status, limit = 20 } = input;
 
+  console.log(`[SEARCH] handleSearchPeople called with:`, { query, status, limit, organizationId });
+
   const conditions = [eq(people.organizationId, organizationId)];
 
   if (status) {
@@ -977,6 +979,8 @@ async function handleSearchPeople(input: SearchPeopleInput, organizationId: stri
     .from(people)
     .where(and(...conditions))
     .limit(limit);
+
+  console.log(`[SEARCH] Results found: ${results.length}`, results.map(p => ({ id: p.id, firstName: p.firstName, lastName: p.lastName })));
 
   return {
     count: results.length,
