@@ -154,14 +154,14 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-primary">לוח בקרה</h1>
           <p className="text-sm text-muted-foreground mt-1">
             סקירת CRM - נתונים בזמן אמת
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="w-4 h-4" />
           </Button>
@@ -205,7 +205,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
 
       {/* People Table */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
           <div className="flex items-center gap-4">
             <CardTitle className="text-base">
               אנשים {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
@@ -216,18 +216,18 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
               </Button>
             )}
           </div>
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-auto">
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="text-xs px-3">
+          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-full sm:w-auto overflow-x-auto">
+            <TabsList className="h-8 w-full sm:w-auto">
+              <TabsTrigger value="all" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                 הכל
               </TabsTrigger>
-              <TabsTrigger value="applied" className="text-xs px-3">
+              <TabsTrigger value="applied" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                 הגישו מועמדות
               </TabsTrigger>
-              <TabsTrigger value="interviewing" className="text-xs px-3">
+              <TabsTrigger value="interviewing" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                 בראיון
               </TabsTrigger>
-              <TabsTrigger value="accepted" className="text-xs px-3">
+              <TabsTrigger value="accepted" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                 התקבלו
               </TabsTrigger>
             </TabsList>
@@ -245,6 +245,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
                 : `לא נמצאו אנשים בסטטוס "${statusLabels[statusFilter] || statusFilter}".`}
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
@@ -323,6 +324,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

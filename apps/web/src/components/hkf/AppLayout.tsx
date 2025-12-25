@@ -61,10 +61,11 @@ const navigationItems = {
 };
 
 export function AppLayout({ children, currentPage = "dashboard", onNavigate, onSearch, searchQuery = "" }: AppLayoutProps) {
-  const [isJarvisOpen, setIsJarvisOpen] = useState(false);
+  const isMobile = useIsMobile();
+  // Auto-open JARVIS on desktop, closed on mobile
+  const [isJarvisOpen, setIsJarvisOpen] = useState(!isMobile);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const isMobile = useIsMobile();
 
   // Get initials from user email or name
   const getUserInitials = () => {
