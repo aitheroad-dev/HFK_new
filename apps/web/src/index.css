@@ -169,3 +169,34 @@ input[type="time"] {
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-first: Safe area for notched devices (iPhone X+, etc.) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Dynamic viewport height fallback */
+@supports not (height: 100dvh) {
+  .h-dvh {
+    height: 100vh;
+  }
+}
+
+/* Prevent iOS zoom on input focus - use 16px on mobile */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 767px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

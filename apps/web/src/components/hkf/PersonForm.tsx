@@ -87,13 +87,14 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "עריכת איש" : "הוספת איש"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Stack on mobile, side-by-side on larger screens */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">שם פרטי *</Label>
                 <Input
@@ -102,6 +103,7 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="ישראל"
                   required
+                  className="h-12 sm:h-10"
                 />
               </div>
               <div className="space-y-2">
@@ -112,6 +114,7 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="ישראלי"
                   required
+                  className="h-12 sm:h-10"
                 />
               </div>
             </div>
@@ -123,6 +126,7 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="israel@example.com"
+                className="h-12 sm:h-10"
               />
             </div>
             <div className="space-y-2">
@@ -133,19 +137,25 @@ export function PersonForm({ open, onOpenChange, person }: PersonFormProps) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="050-123-4567"
+                className="h-12 sm:h-10"
               />
             </div>
           </div>
-          <DialogFooter className="flex-row-reverse gap-2">
+          <DialogFooter className="flex-col-reverse sm:flex-row-reverse gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              className="w-full sm:w-auto h-12 sm:h-10"
             >
               ביטול
             </Button>
-            <Button type="submit" disabled={isLoading || !firstName.trim() || !lastName.trim()}>
+            <Button
+              type="submit"
+              disabled={isLoading || !firstName.trim() || !lastName.trim()}
+              className="w-full sm:w-auto h-12 sm:h-10"
+            >
               {isLoading ? "שומר..." : isEdit ? "שמור שינויים" : "הוסף איש"}
             </Button>
           </DialogFooter>

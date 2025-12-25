@@ -152,6 +152,13 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
   );
 }
 
+// Dev-only: bypass auth for mobile UI testing
+// Add ?bypass-auth to URL to skip login (only works in development)
+const shouldBypassAuth = () => {
+  if (import.meta.env.PROD) return false;
+  return new URLSearchParams(window.location.search).has("bypass-auth");
+};
+
 function AppContent() {
   const auth = useAuthProvider();
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
@@ -160,13 +167,25 @@ function AppContent() {
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
 
-  if (auth.isLoading) {
+  const bypassAuth = shouldBypassAuth();
+
+  if (auth.isLoading && !bypassAuth) {
     return <LoadingScreen />;
   }
 
+  // Create a mock auth context for bypass mode
+  const mockAuth = bypassAuth ? {
+    user: { id: "dev-user", email: "dev@test.com", user_metadata: { full_name: "Dev User" } } as any,
+    session: null,
+    isLoading: false,
+    isAuthenticated: true,
+    signInWithGoogle: async () => {},
+    signOut: async () => { window.location.search = ""; },
+  } : auth;
+
   return (
-    <AuthContext.Provider value={auth}>
-      {auth.isAuthenticated ? (
+    <AuthContext.Provider value={bypassAuth ? mockAuth : auth}>
+      {(bypassAuth || auth.isAuthenticated) ? (
         <AuthenticatedApp
           currentPage={currentPage}
           onNavigate={setCurrentPage}

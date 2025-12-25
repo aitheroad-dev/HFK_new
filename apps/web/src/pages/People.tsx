@@ -20,7 +20,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePeopleWithEnrollments, type PersonWithEnrollment } from "@/hooks/usePeople";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PersonForm } from "@/components/hkf/PersonForm";
+import { MobilePersonCard } from "@/components/hkf/MobilePersonCard";
+import { ResponsiveList } from "@/components/hkf/ResponsiveList";
 
 const statusVariants: Record<string, string> = {
   applied: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -67,6 +70,7 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Filter people based on search and status filters
   const filteredPeople = useMemo(() => {
@@ -131,155 +135,180 @@ export function People({ onSelectPerson, initialSearch = "" }: PeopleProps) {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-primary">אנשים</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-primary">אנשים</h1>
           <p className="text-sm text-muted-foreground mt-1">
             נמצאו {filteredPeople.length} {filteredPeople.length === 1 ? "איש" : "אנשים"}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
+          <Button variant="outline" onClick={handleExport} disabled={!people?.length} size={isMobile ? "sm" : "default"}>
             <Download className="w-4 h-4 ml-2" />
-            ייצוא
+            {!isMobile && "ייצוא"}
           </Button>
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button onClick={() => setIsFormOpen(true)} size={isMobile ? "sm" : "default"}>
             <Plus className="w-4 h-4 ml-2" />
-            הוסף איש
+            {isMobile ? "הוסף" : "הוסף איש"}
           </Button>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="חפש לפי שם, אימייל או טלפון..."
+            placeholder={isMobile ? "חיפוש..." : "חפש לפי שם, אימייל או טלפון..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10"
+            className="pr-10 h-12 sm:h-10"
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Filter className="w-4 h-4 ml-2" />
-              סטטוס
-              {selectedStatuses.length > 0 && (
-                <Badge variant="secondary" className="mr-2">
-                  {selectedStatuses.length}
-                </Badge>
-              )}
-              <ChevronDown className="w-4 h-4 mr-2" />
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size={isMobile ? "default" : "default"} className="h-12 sm:h-10">
+                <Filter className="w-4 h-4 ml-2" />
+                {!isMobile && "סטטוס"}
+                {selectedStatuses.length > 0 && (
+                  <Badge variant="secondary" className="mr-2">
+                    {selectedStatuses.length}
+                  </Badge>
+                )}
+                <ChevronDown className="w-4 h-4 mr-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {allStatuses.map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={selectedStatuses.includes(status)}
+                  onCheckedChange={() => toggleStatus(status)}
+                >
+                  {statusLabels[status]}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {selectedStatuses.length > 0 && (
+            <Button variant="ghost" onClick={() => setSelectedStatuses([])} className="h-12 sm:h-10">
+              {isMobile ? "נקה" : "נקה מסננים"}
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {allStatuses.map((status) => (
-              <DropdownMenuCheckboxItem
-                key={status}
-                checked={selectedStatuses.includes(status)}
-                onCheckedChange={() => toggleStatus(status)}
-              >
-                {statusLabels[status]}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {selectedStatuses.length > 0 && (
-          <Button variant="ghost" onClick={() => setSelectedStatuses([])}>
-            נקה מסננים
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* People Table */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">כל האנשים</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">
-              טוען אנשים...
-            </div>
-          ) : filteredPeople.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              {searchQuery || selectedStatuses.length > 0
-                ? "לא נמצאו אנשים התואמים את החיפוש."
-                : "לא נמצאו אנשים. הוסף מישהו כדי להתחיל."}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    שם
-                  </TableHead>
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    אימייל
-                  </TableHead>
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    טלפון
-                  </TableHead>
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    תוכנית
-                  </TableHead>
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    סטטוס
-                  </TableHead>
-                  <TableHead className="text-xs uppercase tracking-wide font-semibold">
-                    נוסף
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPeople.map((person) => {
-                  const displayStatus = person.enrollment_status || person.status;
-                  return (
-                    <TableRow
-                      key={person.id}
-                      className="hover:bg-muted/50 cursor-pointer"
-                      onClick={() => onSelectPerson?.(person)}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="jarvis-gradient text-white text-xs">
-                              {getInitials(person.first_name, person.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">
-                            {person.first_name} {person.last_name}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.email || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {person.phone || "-"}
-                      </TableCell>
-                      <TableCell>{person.program_name || "-"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={statusVariants[displayStatus] || statusVariants.pending}
-                        >
-                          {statusLabels[displayStatus] || displayStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(person.applied_at || person.created_at)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+      {/* People List - Responsive */}
+      {isMobile ? (
+        /* Mobile: Card List */
+        <ResponsiveList
+          items={filteredPeople}
+          isLoading={isLoading}
+          loadingMessage="טוען אנשים..."
+          emptyMessage={
+            searchQuery || selectedStatuses.length > 0
+              ? "לא נמצאו אנשים התואמים את החיפוש."
+              : "לא נמצאו אנשים. הוסף מישהו כדי להתחיל."
+          }
+          renderCard={(person) => (
+            <MobilePersonCard
+              key={person.id}
+              person={person}
+              onClick={() => onSelectPerson?.(person)}
+            />
           )}
-        </CardContent>
-      </Card>
+          renderTable={() => null}
+        />
+      ) : (
+        /* Desktop: Table */
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">כל האנשים</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-8 text-center text-muted-foreground">
+                טוען אנשים...
+              </div>
+            ) : filteredPeople.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                {searchQuery || selectedStatuses.length > 0
+                  ? "לא נמצאו אנשים התואמים את החיפוש."
+                  : "לא נמצאו אנשים. הוסף מישהו כדי להתחיל."}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      שם
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      אימייל
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      טלפון
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      תוכנית
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      סטטוס
+                    </TableHead>
+                    <TableHead className="text-xs uppercase tracking-wide font-semibold">
+                      נוסף
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPeople.map((person) => {
+                    const displayStatus = person.enrollment_status || person.status;
+                    return (
+                      <TableRow
+                        key={person.id}
+                        className="hover:bg-muted/50 cursor-pointer"
+                        onClick={() => onSelectPerson?.(person)}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="jarvis-gradient text-white text-xs">
+                                {getInitials(person.first_name, person.last_name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">
+                              {person.first_name} {person.last_name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {person.email || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {person.phone || "-"}
+                        </TableCell>
+                        <TableCell>{person.program_name || "-"}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={statusVariants[displayStatus] || statusVariants.pending}
+                          >
+                            {statusLabels[displayStatus] || displayStatus}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(person.applied_at || person.created_at)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Person Dialog */}
       <PersonForm open={isFormOpen} onOpenChange={setIsFormOpen} />

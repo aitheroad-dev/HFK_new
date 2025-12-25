@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { PersonWithEnrollment } from "@/hooks/usePeople";
 import { useUpdateEnrollmentNotes } from "@/hooks/useEnrollments";
 
@@ -72,6 +74,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
   const [notesValue, setNotesValue] = useState(person.notes || "");
   const updateNotes = useUpdateEnrollmentNotes();
   const displayStatus = person.enrollment_status || person.status;
+  const isMobile = useIsMobile();
 
   // Reset notes value when person changes
   useEffect(() => {
@@ -95,38 +98,9 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
     setShowDeleteDialog(false);
   };
 
-  return (
-    <div
-      className={cn(
-        "w-[400px] bg-card border-l border-border flex flex-col shrink-0",
-        className
-      )}
-    >
-      {/* Header */}
-      <div className="shrink-0 p-4 border-b border-border flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-12 h-12">
-            <AvatarFallback className="jarvis-gradient text-white text-lg">
-              {getInitials(person.first_name, person.last_name)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="font-semibold text-lg">
-              {person.first_name} {person.last_name}
-            </h2>
-            <Badge
-              variant="secondary"
-              className={statusVariants[displayStatus] || statusVariants.pending}
-            >
-              {statusLabels[displayStatus] || displayStatus}
-            </Badge>
-          </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
-      </div>
-
+  // Shared content between desktop and mobile
+  const detailContent = (
+    <>
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         <Tabs defaultValue="overview" className="w-full">
@@ -226,7 +200,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-10"
                         onClick={() => onSubmitFeedback?.(person)}
                       >
                         <ClipboardCheck className="w-4 h-4 ml-1" />
@@ -235,7 +209,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-10"
                         onClick={() => onMakeDecision?.(person)}
                       >
                         <Scale className="w-4 h-4 ml-1" />
@@ -247,7 +221,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full h-10"
                     onClick={() => onScheduleInterview?.(person)}
                   >
                     <UserPlus className="w-4 h-4 ml-2" />
@@ -324,6 +298,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <div className="flex gap-2">
                   <Button
                     size="sm"
+                    className="h-10"
                     onClick={handleSaveNotes}
                     disabled={updateNotes.isPending}
                   >
@@ -337,6 +312,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                   <Button
                     size="sm"
                     variant="outline"
+                    className="h-10"
                     onClick={() => {
                       setNotesValue(person.notes || "");
                       setIsEditingNotes(false);
@@ -359,6 +335,7 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
                 <Button
                   size="sm"
                   variant="outline"
+                  className="h-10"
                   onClick={() => setIsEditingNotes(true)}
                 >
                   {person.notes ? (
@@ -380,42 +357,116 @@ export function PersonDetail({ person, onClose, onEdit, onDelete, onScheduleInte
       </div>
 
       {/* Footer Actions */}
-      <div className="shrink-0 p-4 border-t border-border flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => onEdit?.(person)}>
+      <div className="shrink-0 p-4 border-t border-border flex gap-2 safe-area-bottom">
+        <Button variant="outline" className="flex-1 h-12 md:h-10" onClick={() => onEdit?.(person)}>
           <Edit2 className="w-4 h-4 ml-2" />
           ערוך
         </Button>
         <Button
           variant="outline"
-          className="text-destructive hover:text-destructive"
+          className="text-destructive hover:text-destructive h-12 md:h-10"
           onClick={() => setShowDeleteDialog(true)}
           disabled={isDeleting}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
+    </>
+  );
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>למחוק את {person.first_name} {person.last_name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              לא ניתן לבטל פעולה זו. פעולה זו תמחק לצמיתות את האדם הזה
-              ואת כל הנתונים הקשורים אליו כולל הרשמות, ראיונות ורשומות תשלום.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogCancel>ביטול</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+  // Delete dialog is shared between both views
+  const deleteDialog = (
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>למחוק את {person.first_name} {person.last_name}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            לא ניתן לבטל פעולה זו. פעולה זו תמחק לצמיתות את האדם הזה
+            ואת כל הנתונים הקשורים אליו כולל הרשמות, ראיונות ורשומות תשלום.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-row-reverse gap-2">
+          <AlertDialogCancel>ביטול</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? "מוחק..." : "מחק"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+
+  // Mobile: Bottom Sheet
+  if (isMobile) {
+    return (
+      <>
+        <Sheet open onOpenChange={(open) => !open && onClose()}>
+          <SheetContent side="bottom" className="h-[90vh] p-0 rounded-t-2xl flex flex-col">
+            <SheetHeader className="shrink-0 p-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <Avatar className="w-12 h-12">
+                  <AvatarFallback className="jarvis-gradient text-white text-lg">
+                    {getInitials(person.first_name, person.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <SheetTitle className="text-right">
+                    {person.first_name} {person.last_name}
+                  </SheetTitle>
+                  <Badge
+                    variant="secondary"
+                    className={statusVariants[displayStatus] || statusVariants.pending}
+                  >
+                    {statusLabels[displayStatus] || displayStatus}
+                  </Badge>
+                </div>
+              </div>
+            </SheetHeader>
+            {detailContent}
+          </SheetContent>
+        </Sheet>
+        {deleteDialog}
+      </>
+    );
+  }
+
+  // Desktop: Side Panel
+  return (
+    <div
+      className={cn(
+        "w-[400px] bg-card border-l border-border flex flex-col shrink-0",
+        className
+      )}
+    >
+      {/* Header */}
+      <div className="shrink-0 p-4 border-b border-border flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <Avatar className="w-12 h-12">
+            <AvatarFallback className="jarvis-gradient text-white text-lg">
+              {getInitials(person.first_name, person.last_name)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="font-semibold text-lg">
+              {person.first_name} {person.last_name}
+            </h2>
+            <Badge
+              variant="secondary"
+              className={statusVariants[displayStatus] || statusVariants.pending}
             >
-              {isDeleting ? "מוחק..." : "מחק"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              {statusLabels[displayStatus] || displayStatus}
+            </Badge>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {detailContent}
+      {deleteDialog}
     </div>
   );
 }

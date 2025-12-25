@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,6 +31,11 @@ import {
 } from "@/components/ui/sidebar";
 import { HkfLogo } from "./HkfLogo";
 import { JarvisPanel, JarvisButton } from "@/components/jarvis";
+import { MobileBottomNav } from "./MobileBottomNav";
+import { MobileMoreMenu } from "./MobileMoreMenu";
+import { OfflineIndicator } from "./OfflineIndicator";
+import { InstallPrompt } from "./InstallPrompt";
+import { PWAReloadPrompt } from "./PWAReloadPrompt";
 
 type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events";
 
@@ -55,8 +61,10 @@ const navigationItems = {
 };
 
 export function AppLayout({ children, currentPage = "dashboard", onNavigate, onSearch, searchQuery = "" }: AppLayoutProps) {
-  const [isJarvisOpen, setIsJarvisOpen] = useState(true);
+  const [isJarvisOpen, setIsJarvisOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   // Get initials from user email or name
   const getUserInitials = () => {
@@ -72,81 +80,91 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        {/* Sidebar - Right side */}
-        <Sidebar side="right" className="border-r-0 border-l">
-          <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
-            <div className="flex items-center gap-3">
-              <HkfLogo size="md" />
-              <div>
-                <div className="font-semibold text-sm text-primary">הופמן קופמן</div>
-                <div className="text-xs text-muted-foreground">קרן למנהיגות</div>
+      <div className="flex h-dvh w-full overflow-hidden">
+        {/* Sidebar - Right side (hidden on mobile) */}
+        {!isMobile && (
+          <Sidebar side="right" className="border-r-0 border-l">
+            <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
+              <div className="flex items-center gap-3">
+                <HkfLogo size="md" />
+                <div>
+                  <div className="font-semibold text-sm text-primary">הופמן קופמן</div>
+                  <div className="text-xs text-muted-foreground">קרן למנהיגות</div>
+                </div>
               </div>
-            </div>
-          </SidebarHeader>
+            </SidebarHeader>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>סקירה</SidebarGroupLabel>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>סקירה</SidebarGroupLabel>
+                <SidebarMenu>
+                  {navigationItems.overview.map((item) => (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton
+                        isActive={item.page === currentPage}
+                        onClick={() => item.page && onNavigate?.(item.page)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+
+              <SidebarGroup>
+                <SidebarGroupLabel>תפעול</SidebarGroupLabel>
+                <SidebarMenu>
+                  {navigationItems.operations.map((item) => (
+                    <SidebarMenuItem key={item.label}>
+                      <SidebarMenuButton
+                        isActive={item.page === currentPage}
+                        onClick={() => item.page && onNavigate?.(item.page)}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                      {item.badge && (
+                        <SidebarMenuBadge className="bg-primary/10 text-primary">
+                          {item.badge}
+                        </SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            </SidebarContent>
+
+            <SidebarFooter className="border-t border-sidebar-border">
               <SidebarMenu>
-                {navigationItems.overview.map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton
-                      isActive={item.page === currentPage}
-                      onClick={() => item.page && onNavigate?.(item.page)}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                <SidebarMenuItem>
+                  <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
+                    <Settings className="w-4 h-4" />
+                    <span>הגדרות</span>
+                    <span className="text-xs text-muted-foreground mr-auto">בקרוב</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>תפעול</SidebarGroupLabel>
-              <SidebarMenu>
-                {navigationItems.operations.map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton
-                      isActive={item.page === currentPage}
-                      onClick={() => item.page && onNavigate?.(item.page)}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                    {item.badge && (
-                      <SidebarMenuBadge className="bg-primary/10 text-primary">
-                        {item.badge}
-                      </SidebarMenuBadge>
-                    )}
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          </SidebarContent>
-
-          <SidebarFooter className="border-t border-sidebar-border">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
-                  <Settings className="w-4 h-4" />
-                  <span>הגדרות</span>
-                  <span className="text-xs text-muted-foreground mr-auto">בקרוב</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarFooter>
-        </Sidebar>
+            </SidebarFooter>
+          </Sidebar>
+        )}
 
         {/* Main Content - Center */}
         <div className="flex flex-col flex-1">
           {/* Header */}
-          <header className="h-14 border-b border-border flex items-center px-6 gap-4 bg-card">
+          <header className="h-14 border-b border-border flex items-center px-4 md:px-6 gap-4 bg-card safe-area-top">
+            {/* Mobile: Logo */}
+            {isMobile && (
+              <div className="flex items-center gap-2">
+                <HkfLogo size="sm" />
+              </div>
+            )}
+
+            {/* Search - full on desktop, icon on mobile */}
             <div className="flex items-center gap-2 flex-1 max-w-md">
               <Search className="w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="חפש מועמדים, תוכניות..."
+                placeholder={isMobile ? "חיפוש..." : "חפש מועמדים, תוכניות..."}
                 className="border-none shadow-none focus-visible:ring-0 bg-transparent"
                 value={searchQuery}
                 onChange={(e) => onSearch?.(e.target.value)}
@@ -159,22 +177,51 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             </div>
 
             <div className="flex items-center gap-2 mr-auto">
+              {/* JARVIS button - always visible */}
               <JarvisButton onClick={() => setIsJarvisOpen(!isJarvisOpen)} />
-              <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
-              </Avatar>
-              <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
-                <LogOut className="w-4 h-4" />
-              </Button>
+              {/* Avatar and logout - hidden on mobile (available in More menu) */}
+              {!isMobile && (
+                <>
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-muted text-xs">{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                  <Button variant="ghost" size="icon" onClick={signOut} title="התנתק">
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </header>
 
-          {/* Main content area */}
-          <main className="flex-1 overflow-y-auto p-6 bg-muted/30">{children}</main>
+          {/* Main content area - add bottom padding on mobile for nav */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 bg-muted/30">{children}</main>
         </div>
 
         {/* JARVIS Panel - Left side (last in flex = left in RTL) */}
         <JarvisPanel isOpen={isJarvisOpen} onClose={() => setIsJarvisOpen(false)} />
+
+        {/* Mobile Bottom Navigation */}
+        {isMobile && (
+          <MobileBottomNav
+            currentPage={currentPage}
+            onNavigate={(page) => onNavigate?.(page)}
+            onMoreClick={() => setIsMoreMenuOpen(true)}
+          />
+        )}
+
+        {/* Mobile More Menu */}
+        <MobileMoreMenu
+          open={isMoreMenuOpen}
+          onOpenChange={setIsMoreMenuOpen}
+          currentPage={currentPage}
+          onNavigate={(page) => onNavigate?.(page)}
+          onOpenJarvis={() => setIsJarvisOpen(true)}
+        />
+
+        {/* PWA Components */}
+        <OfflineIndicator />
+        <InstallPrompt />
+        <PWAReloadPrompt />
       </div>
     </SidebarProvider>
   );
