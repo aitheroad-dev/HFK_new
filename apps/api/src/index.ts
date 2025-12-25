@@ -247,7 +247,7 @@ fastify.register(async function (fastify) {
     sendResponse({
       type: 'connected',
       sessionId,
-      content: 'JARVIS connected. How can I help you today?',
+      content: 'נועם מחובר. איך אפשר לעזור לך היום?',
     });
 
     socket.on('message', async (rawMessage) => {

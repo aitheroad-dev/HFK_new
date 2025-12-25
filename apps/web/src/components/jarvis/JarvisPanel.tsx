@@ -39,7 +39,7 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
     <aside
       className={cn(
         "w-full sm:w-[22rem] max-w-full bg-card border-l border-border transition-all duration-200",
-        "flex flex-col h-full z-50 fixed sm:relative inset-0 sm:inset-auto",
+        "flex flex-col h-full z-[100] fixed inset-0 sm:relative sm:inset-auto",
         className
       )}
     >
