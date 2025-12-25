@@ -81,20 +81,22 @@ interface StatCardProps {
 
 function StatCard({ title, value, change, trend, isLoading }: StatCardProps) {
   return (
-    <Card className="p-3 min-w-0 overflow-hidden">
-      <CardDescription className="text-xs truncate">{title}</CardDescription>
-      {isLoading ? (
-        <div className="h-6 w-10 bg-muted animate-pulse rounded mt-1" />
-      ) : (
-        <div className="text-xl font-bold text-primary mt-1 truncate">{value}</div>
-      )}
-      {change && (
-        <p
-          className={`text-xs mt-0.5 truncate ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
-        >
-          {change}
-        </p>
-      )}
+    <Card className="py-0">
+      <CardContent className="p-3">
+        <div className="text-xs text-muted-foreground truncate">{title}</div>
+        {isLoading ? (
+          <div className="h-6 w-10 bg-muted animate-pulse rounded mt-1" />
+        ) : (
+          <div className="text-xl font-bold text-primary mt-1 truncate">{value}</div>
+        )}
+        {change && (
+          <p
+            className={`text-xs mt-0.5 truncate ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
+          >
+            {change}
+          </p>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -148,7 +150,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full overflow-hidden">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -174,7 +176,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full min-w-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatCard
           title="סה״כ אנשים"
           value={stats?.totalPeople.toString() || "0"}
@@ -201,9 +203,9 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* People Table */}
-      <Card className="w-full min-w-0">
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4 min-w-0">
-          <div className="flex items-center gap-2 min-w-0">
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
+          <div className="flex items-center gap-2">
             <CardTitle className="text-base">
               אנשים {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
             </CardTitle>
