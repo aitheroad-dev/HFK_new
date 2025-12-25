@@ -175,8 +175,8 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
         </div>
       </div>
 
-      {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      {/* Stats Grid - 1 column on mobile, 4 on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 sm:gap-3">
         <StatCard
           title="סה״כ אנשים"
           value={stats?.totalPeople.toString() || "0"}
