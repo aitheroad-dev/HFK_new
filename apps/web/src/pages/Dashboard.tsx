@@ -157,17 +157,18 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
             סקירת CRM - נתונים בזמן אמת
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-shrink-0">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="w-4 h-4" />
           </Button>
-          <Button variant="outline" onClick={handleExport} disabled={!people?.length}>
-            <Download className="w-4 h-4 ml-2" />
-            ייצוא
+          <Button variant="outline" size="icon" onClick={handleExport} disabled={!people?.length} className="sm:w-auto sm:px-3">
+            <Download className="w-4 h-4 sm:ml-2" />
+            <span className="hidden sm:inline">ייצוא</span>
           </Button>
-          <Button onClick={onAddPerson}>
-            <Plus className="w-4 h-4 ml-2" />
-            הוסף איש
+          <Button onClick={onAddPerson} size="sm">
+            <Plus className="w-4 h-4 sm:ml-2" />
+            <span className="hidden sm:inline">הוסף איש</span>
+            <span className="sm:hidden">הוסף</span>
           </Button>
         </div>
       </div>
@@ -200,31 +201,31 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
       </div>
 
       {/* People Table */}
-      <Card className="w-full">
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
-          <div className="flex items-center gap-4">
-            <CardTitle className="text-base whitespace-nowrap">
+      <Card className="w-full min-w-0">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-base">
               אנשים {filteredPeople?.length ? `(${filteredPeople.length})` : ""}
             </CardTitle>
             {onViewPeople && (
-              <Button variant="link" className="h-auto p-0 text-sm whitespace-nowrap" onClick={onViewPeople}>
+              <Button variant="link" className="h-auto p-0 text-sm" onClick={onViewPeople}>
                 צפה בכולם
               </Button>
             )}
           </div>
-          <div className="w-full sm:w-auto overflow-x-auto">
+          <div className="w-full sm:w-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-              <TabsList className="h-8 inline-flex w-auto min-w-full sm:min-w-0">
-                <TabsTrigger value="all" className="text-xs px-2 sm:px-3">
+              <TabsList className="h-8 w-full sm:w-auto">
+                <TabsTrigger value="all" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                   הכל
                 </TabsTrigger>
-                <TabsTrigger value="applied" className="text-xs px-2 sm:px-3">
-                  הגישו מועמדות
+                <TabsTrigger value="applied" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
+                  הגישו
                 </TabsTrigger>
-                <TabsTrigger value="interviewing" className="text-xs px-2 sm:px-3">
+                <TabsTrigger value="interviewing" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                   בראיון
                 </TabsTrigger>
-                <TabsTrigger value="accepted" className="text-xs px-2 sm:px-3">
+                <TabsTrigger value="accepted" className="text-xs px-2 sm:px-3 flex-1 sm:flex-none">
                   התקבלו
                 </TabsTrigger>
               </TabsList>
@@ -243,8 +244,8 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
                 : `לא נמצאו אנשים בסטטוס "${statusLabels[statusFilter] || statusFilter}".`}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-            <Table>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Table className="min-w-[500px]">
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs uppercase tracking-wide font-semibold">
@@ -321,7 +322,7 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
             </div>
           )}
         </CardContent>
