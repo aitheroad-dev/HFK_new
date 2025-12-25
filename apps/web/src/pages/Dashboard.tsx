@@ -81,27 +81,20 @@ interface StatCardProps {
 
 function StatCard({ title, value, change, trend, isLoading }: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-4">
-        {/* Horizontal layout for mobile, vertical for larger screens */}
-        <div className="flex items-center justify-between sm:flex-col sm:items-end sm:gap-1">
-          <CardDescription className="text-sm">{title}</CardDescription>
-          <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-            {isLoading ? (
-              <div className="h-8 w-12 bg-muted animate-pulse rounded" />
-            ) : (
-              <div className="text-2xl sm:text-3xl font-bold text-primary">{value}</div>
-            )}
-            {change && (
-              <p
-                className={`text-xs ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
-              >
-                {change}
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
+    <Card className="p-3">
+      <CardDescription className="text-xs">{title}</CardDescription>
+      {isLoading ? (
+        <div className="h-6 w-10 bg-muted animate-pulse rounded mt-1" />
+      ) : (
+        <div className="text-xl font-bold text-primary mt-1">{value}</div>
+      )}
+      {change && (
+        <p
+          className={`text-xs mt-0.5 ${trend === "up" ? "text-accent" : "text-muted-foreground"}`}
+        >
+          {change}
+        </p>
+      )}
     </Card>
   );
 }
@@ -179,8 +172,8 @@ export function Dashboard({ onViewPeople, onAddPerson, onSelectPerson }: Dashboa
         </div>
       </div>
 
-      {/* Stats Grid - 2 columns on mobile for compact view */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatCard
           title="סה״כ אנשים"
           value={stats?.totalPeople.toString() || "0"}
