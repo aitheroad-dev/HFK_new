@@ -1,4 +1,4 @@
-import { useState, ReactNode } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -62,10 +62,19 @@ const navigationItems = {
 
 export function AppLayout({ children, currentPage = "dashboard", onNavigate, onSearch, searchQuery = "" }: AppLayoutProps) {
   const isMobile = useIsMobile();
-  // Auto-open JARVIS on desktop, closed on mobile
-  const [isJarvisOpen, setIsJarvisOpen] = useState(!isMobile);
+  // Start closed, then open on desktop after mount
+  const [isJarvisOpen, setIsJarvisOpen] = useState(false);
+  const [hasInitializedJarvis, setHasInitializedJarvis] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+
+  // Auto-open JARVIS on desktop only (after we know the screen size)
+  useEffect(() => {
+    if (!hasInitializedJarvis) {
+      setIsJarvisOpen(!isMobile);
+      setHasInitializedJarvis(true);
+    }
+  }, [isMobile, hasInitializedJarvis]);
 
   // Get initials from user email or name
   const getUserInitials = () => {
