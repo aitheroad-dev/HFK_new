@@ -42,8 +42,8 @@ export function JarvisPanel({ isOpen, onClose, className }: JarvisPanelProps) {
         "flex flex-col z-[100]",
         // Mobile: fixed fullscreen overlay
         "fixed inset-0 w-screen h-screen",
-        // Desktop: relative sidebar
-        "sm:relative sm:inset-auto sm:w-[22rem] sm:h-full",
+        // Desktop: relative sidebar with fixed width (shrink-0 prevents squishing)
+        "sm:relative sm:inset-auto sm:w-[22rem] sm:min-w-[22rem] sm:h-full sm:shrink-0",
         className
       )}
     >
