@@ -3,8 +3,6 @@ import {
   LayoutDashboard,
   Users,
   GraduationCap,
-  UserCircle,
-  Globe,
   Calendar,
   CreditCard,
   Mail,
@@ -33,7 +31,7 @@ import {
 import { HkfLogo } from "./HkfLogo";
 import { JarvisPanel, JarvisButton } from "@/components/jarvis";
 
-type Page = "dashboard" | "people";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -47,16 +45,12 @@ const navigationItems = {
   overview: [
     { label: "לוח בקרה", icon: LayoutDashboard, page: "dashboard" as Page },
     { label: "אנשים", icon: Users, page: "people" as Page },
-  ],
-  programs: [
-    { label: "פלואושיפ", icon: GraduationCap },
-    { label: "תוכנית זוגות", icon: UserCircle },
-    { label: "תגלית", icon: Globe },
+    { label: "תוכניות", icon: GraduationCap, page: "programs" as Page },
   ],
   operations: [
-    { label: "ראיונות", icon: Calendar, badge: "3" },
-    { label: "תשלומים", icon: CreditCard },
-    { label: "הודעות", icon: Mail },
+    { label: "ראיונות", icon: Calendar, page: "interviews" as Page, badge: "3" },
+    { label: "תשלומים", icon: CreditCard, page: "payments" as Page },
+    { label: "הודעות", icon: Mail, page: "events" as Page },
   ],
 };
 
@@ -110,30 +104,19 @@ export function AppLayout({ children, currentPage = "dashboard", onNavigate, onS
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>תוכניות <span className="text-xs text-muted-foreground mr-1">(בקרוב)</span></SidebarGroupLabel>
-              <SidebarMenu>
-                {navigationItems.programs.map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>תפעול <span className="text-xs text-muted-foreground mr-1">(בקרוב)</span></SidebarGroupLabel>
+              <SidebarGroupLabel>תפעול</SidebarGroupLabel>
               <SidebarMenu>
                 {navigationItems.operations.map((item) => (
                   <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton disabled className="opacity-50 cursor-not-allowed">
+                    <SidebarMenuButton
+                      isActive={item.page === currentPage}
+                      onClick={() => item.page && onNavigate?.(item.page)}
+                    >
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                     {item.badge && (
-                      <SidebarMenuBadge className="bg-muted text-muted-foreground">
+                      <SidebarMenuBadge className="bg-primary/10 text-primary">
                         {item.badge}
                       </SidebarMenuBadge>
                     )}

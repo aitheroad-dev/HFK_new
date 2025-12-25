@@ -1,3 +1,10 @@
 export { HkfLogo } from "./HkfLogo";
 export { AppLayout } from "./AppLayout";
 export { PersonDetail } from "./PersonDetail";
+export { PersonForm } from "./PersonForm";
+export { ProgramForm } from "./ProgramForm";
+export { CohortForm } from "./CohortForm";
+export { EventForm } from "./EventForm";
+export { ScheduleInterviewDialog } from "./ScheduleInterviewDialog";
+export { InterviewFeedbackDialog } from "./InterviewFeedbackDialog";
+export { DecisionDialog } from "./DecisionDialog";

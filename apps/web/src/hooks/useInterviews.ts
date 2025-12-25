@@ -41,6 +41,50 @@ export function useInterviews() {
 }
 
 /**
+ * Fetch all interviews with person details
+ */
+export function useInterviewsWithDetails() {
+  return useQuery({
+    queryKey: ["interviews-with-details"],
+    queryFn: async () => {
+      // Get all interviews
+      const { data: interviews, error: interviewsError } = await supabase
+        .from("interviews")
+        .select("*")
+        .order("scheduled_at", { ascending: true });
+
+      if (interviewsError) throw interviewsError;
+
+      // Get all people for name lookup
+      const { data: people, error: peopleError } = await supabase
+        .from("people")
+        .select("id, first_name, last_name, email, phone");
+
+      if (peopleError) throw peopleError;
+
+      // Create lookup map
+      const peopleMap = new Map(
+        (people || []).map((p) => [
+          p.id,
+          { name: `${p.first_name} ${p.last_name}`, email: p.email, phone: p.phone },
+        ])
+      );
+
+      // Enrich interviews with person details
+      return (interviews || []).map((interview) => {
+        const person = peopleMap.get(interview.person_id);
+        return {
+          ...interview,
+          person_name: person?.name || "לא ידוע",
+          person_email: person?.email,
+          person_phone: person?.phone,
+        } as InterviewWithDetails & { person_email?: string; person_phone?: string };
+      });
+    },
+  });
+}
+
+/**
  * Fetch interviews for a specific person
  */
 export function usePersonInterviews(personId: string | undefined) {

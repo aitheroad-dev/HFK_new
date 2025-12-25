@@ -3,6 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppLayout } from "@/components/hkf";
 import { Dashboard } from "@/pages/Dashboard";
 import { People } from "@/pages/People";
+import { Programs } from "@/pages/Programs";
+import { Interviews } from "@/pages/Interviews";
+import { Payments } from "@/pages/Payments";
+import { Events } from "@/pages/Events";
 import { Login } from "@/pages/Login";
 import { PersonDetail } from "@/components/hkf/PersonDetail";
 import { PersonForm } from "@/components/hkf/PersonForm";
@@ -25,7 +29,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = "dashboard" | "people";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events";
 
 function LoadingScreen() {
   return (
@@ -84,6 +88,10 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
             />
           )}
           {currentPage === "people" && <People onSelectPerson={onSelectPerson} initialSearch={globalSearch} />}
+          {currentPage === "programs" && <Programs />}
+          {currentPage === "interviews" && <Interviews />}
+          {currentPage === "payments" && <Payments />}
+          {currentPage === "events" && <Events />}
         </div>
         {selectedPerson && (
           <PersonDetail
