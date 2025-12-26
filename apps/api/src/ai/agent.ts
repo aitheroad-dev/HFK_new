@@ -279,6 +279,7 @@ export class ConversationSession {
 
     // Get tool definitions
     const tools = getToolDefinitions();
+    console.log(`[Chat] Loaded ${tools.length} tools:`, tools.map(t => t.name).join(', '));
 
     // Call Claude
     let response = await anthropic.messages.create({
