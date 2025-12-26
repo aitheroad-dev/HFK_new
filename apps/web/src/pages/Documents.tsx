@@ -39,6 +39,7 @@ import {
   type DocumentWithDetails,
   type DocumentStatus,
 } from "@/hooks/useDocuments";
+import { supabase } from "@/lib/supabase";
 
 interface DocumentsProps {
   onSelectConversation?: (conversationId: string) => void;
@@ -118,9 +119,35 @@ export function Documents({ onSelectConversation }: DocumentsProps) {
   };
 
   // Handle download
-  const handleDownload = (doc: DocumentWithDetails) => {
+  const handleDownload = async (doc: DocumentWithDetails) => {
+    // If we already have a download URL, use it
     if (doc.download_url) {
       window.open(doc.download_url, "_blank");
+      return;
+    }
+
+    // If we have a storage path, try to get a signed URL
+    if (doc.storage_path) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("ai-documents")
+          .createSignedUrl(doc.storage_path, 3600); // 1 hour
+
+        if (error) {
+          console.error("Failed to get download URL:", error);
+          alert("לא ניתן להוריד את הקובץ. אנא נסה שוב מאוחר יותר.");
+          return;
+        }
+
+        if (data?.signedUrl) {
+          window.open(data.signedUrl, "_blank");
+        }
+      } catch (err) {
+        console.error("Download error:", err);
+        alert("שגיאה בהורדת הקובץ");
+      }
+    } else {
+      alert("הקובץ לא זמין להורדה. ייתכן שה-Storage לא מוגדר.");
     }
   };
 
@@ -320,7 +347,7 @@ export function Documents({ onSelectConversation }: DocumentsProps) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {doc.download_url && (
+                            {doc.status === "ready" && (
                               <DropdownMenuItem
                                 onClick={() => handleDownload(doc)}
                               >
@@ -407,10 +434,13 @@ function DocumentDetail({
               {getDocumentStatusLabel(document.status)}
             </Badge>
 
-            {document.download_url && (
-              <Button onClick={() => onDownload(document)}>
+            {document.status === "ready" && (
+              <Button
+                onClick={() => onDownload(document)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Download className="w-4 h-4 ml-2" />
-                הורד
+                הורד קובץ
               </Button>
             )}
 
