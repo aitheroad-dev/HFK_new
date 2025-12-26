@@ -4,7 +4,7 @@ import websocket from '@fastify/websocket';
 import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { sessionManager, type ChatResponse } from './ai/agent.js';
+import { sessionManager, type ChatResponse, type UserInfo } from './ai/agent.js';
 import { requireAuth, verifyWebSocketToken, type AuthUser } from './auth.js';
 import { sendEmail, checkEmailStatus } from './integrations/email.js';
 
@@ -287,6 +287,11 @@ fastify.register(async function (fastify) {
 
         // Handle clear history
         if (data.type === 'clear_history') {
+          // Clear and archive the session in database
+          if (sessionManager.hasSession(sessionId)) {
+            const session = sessionManager.getOrCreateSession(sessionId, HKF_ORG_ID);
+            await session.clearHistory();
+          }
           sessionManager.removeSession(sessionId);
           sendResponse({
             type: 'message',
@@ -298,8 +303,14 @@ fastify.register(async function (fastify) {
 
         // Handle chat message
         if (data.type === 'chat' && data.message) {
+          // Build user info for conversation tracking
+          const userInfo: UserInfo = {
+            userId: authenticatedUser?.id,
+            userEmail: authenticatedUser?.email,
+          };
+
           // Get or create session (single-tenant: always use HKF_ORG_ID)
-          const session = sessionManager.getOrCreateSession(sessionId, HKF_ORG_ID);
+          const session = sessionManager.getOrCreateSession(sessionId, HKF_ORG_ID, userInfo);
 
           // Process message through Claude
           const response = await session.chat(data.message);
@@ -351,8 +362,14 @@ fastify.post<{ Body: ChatRequestBody }>(
     const { message, sessionId = randomUUID() } = validationResult.data;
 
     try {
+      // Build user info from authenticated request
+      const userInfo: UserInfo = {
+        userId: request.user?.id,
+        userEmail: request.user?.email,
+      };
+
       // Single-tenant: always use HKF_ORG_ID
-      const session = sessionManager.getOrCreateSession(sessionId, HKF_ORG_ID);
+      const session = sessionManager.getOrCreateSession(sessionId, HKF_ORG_ID, userInfo);
       const response = await session.chat(message);
 
       return {

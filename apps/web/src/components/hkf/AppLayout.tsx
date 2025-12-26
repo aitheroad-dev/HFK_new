@@ -6,6 +6,7 @@ import {
   Calendar,
   CreditCard,
   Mail,
+  MessageSquare,
   Settings,
   Search,
   LogOut,
@@ -37,7 +38,7 @@ import { OfflineIndicator } from "./OfflineIndicator";
 import { InstallPrompt } from "./InstallPrompt";
 import { PWAReloadPrompt } from "./PWAReloadPrompt";
 
-type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -57,6 +58,7 @@ const navigationItems = {
     { label: "ראיונות", icon: Calendar, page: "interviews" as Page, badge: "3" },
     { label: "תשלומים", icon: CreditCard, page: "payments" as Page },
     { label: "הודעות", icon: Mail, page: "events" as Page },
+    { label: "שיחות AI", icon: MessageSquare, page: "conversations" as Page },
   ],
 };
 

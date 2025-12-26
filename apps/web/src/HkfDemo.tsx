@@ -7,6 +7,7 @@ import { Programs } from "@/pages/Programs";
 import { Interviews } from "@/pages/Interviews";
 import { Payments } from "@/pages/Payments";
 import { Events } from "@/pages/Events";
+import { Conversations } from "@/pages/Conversations";
 import { Login } from "@/pages/Login";
 import { PersonDetail } from "@/components/hkf/PersonDetail";
 import { PersonForm } from "@/components/hkf/PersonForm";
@@ -29,7 +30,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations";
 
 function LoadingScreen() {
   return (
@@ -92,6 +93,11 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
           {currentPage === "interviews" && <Interviews />}
           {currentPage === "payments" && <Payments />}
           {currentPage === "events" && <Events />}
+          {currentPage === "conversations" && <Conversations onSelectPerson={(id) => {
+            // Navigate to people page and select the person
+            // For now just navigate to people - could enhance to auto-select
+            onNavigate("people");
+          }} />}
         </div>
         {selectedPerson && (
           <PersonDetail

@@ -1,5 +1,7 @@
 import { createRequire } from 'module';
 import { getToolDefinitions, executeToolCall, type ToolName } from './tools.js';
+import { db, aiConversations, aiConversationMessages } from '@generic-ai-crm/db';
+import { eq, desc } from 'drizzle-orm';
 
 // Use createRequire to load CommonJS module in ESM context
 const require = createRequire(import.meta.url);
@@ -31,7 +33,7 @@ export interface ToolCall {
 export interface ToolResult {
   toolUseId: string;
   result: unknown;
-  isError?: boolean;
+  isError: boolean;
 }
 
 export interface ChatResponse {
@@ -42,16 +44,185 @@ export interface ChatResponse {
 }
 
 /**
+ * User info for conversation tracking
+ */
+export interface UserInfo {
+  userId?: string;
+  userEmail?: string;
+}
+
+/**
  * Conversation session - maintains state for a single chat session
+ * Now with database persistence for audit trail and session recovery
  */
 export class ConversationSession {
   private messages: MessageParam[] = [];
   private organizationId: string;
   private systemPrompt: string;
+  private sessionId: string;
+  private conversationDbId: string | null = null;
+  private userInfo: UserInfo;
+  private isInitialized: boolean = false;
 
-  constructor(organizationId: string, systemPrompt?: string) {
+  constructor(organizationId: string, sessionId: string, userInfo: UserInfo = {}, systemPrompt?: string) {
     this.organizationId = organizationId;
+    this.sessionId = sessionId;
+    this.userInfo = userInfo;
     this.systemPrompt = systemPrompt || this.getDefaultSystemPrompt();
+  }
+
+  /**
+   * Initialize the session - create or load from database
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
+    try {
+      // Try to find existing conversation
+      const existing = await db
+        .select()
+        .from(aiConversations)
+        .where(eq(aiConversations.sessionId, this.sessionId))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Load existing conversation
+        this.conversationDbId = existing[0].id;
+        await this.loadMessagesFromDb();
+        console.log(`[Session] Loaded existing conversation ${this.sessionId} with ${this.messages.length} messages`);
+      } else {
+        // Create new conversation
+        const [created] = await db
+          .insert(aiConversations)
+          .values({
+            organizationId: this.organizationId,
+            sessionId: this.sessionId,
+            userId: this.userInfo.userId || null,
+            userEmail: this.userInfo.userEmail || null,
+            status: 'active',
+            messageCount: 0,
+          })
+          .returning();
+
+        this.conversationDbId = created.id;
+        console.log(`[Session] Created new conversation ${this.sessionId}`);
+      }
+
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('[Session] Failed to initialize conversation:', error);
+      // Continue without persistence - don't break the chat
+      this.isInitialized = true;
+    }
+  }
+
+  /**
+   * Load messages from database to restore session
+   */
+  private async loadMessagesFromDb(): Promise<void> {
+    if (!this.conversationDbId) return;
+
+    try {
+      const dbMessages = await db
+        .select()
+        .from(aiConversationMessages)
+        .where(eq(aiConversationMessages.conversationId, this.conversationDbId))
+        .orderBy(aiConversationMessages.createdAt);
+
+      // Rebuild messages array in Anthropic format
+      this.messages = [];
+      for (const msg of dbMessages) {
+        if (msg.role === 'user') {
+          // User messages are simple text
+          this.messages.push({
+            role: 'user',
+            content: msg.content || '',
+          });
+        } else if (msg.role === 'assistant') {
+          // Assistant messages may have tool calls
+          if (msg.toolCalls && (msg.toolCalls as ToolCall[]).length > 0) {
+            // Build content array with text + tool_use blocks
+            const contentBlocks: Array<{ type: string; [key: string]: unknown }> = [];
+
+            if (msg.content) {
+              contentBlocks.push({ type: 'text', text: msg.content });
+            }
+
+            for (const tc of msg.toolCalls as ToolCall[]) {
+              contentBlocks.push({
+                type: 'tool_use',
+                id: tc.id,
+                name: tc.name,
+                input: tc.input,
+              });
+            }
+
+            this.messages.push({
+              role: 'assistant',
+              content: contentBlocks,
+            });
+
+            // Add tool results as user message
+            if (msg.toolResults && (msg.toolResults as ToolResult[]).length > 0) {
+              const toolResults = (msg.toolResults as ToolResult[]).map(tr => ({
+                type: 'tool_result',
+                tool_use_id: tr.toolUseId,
+                content: JSON.stringify(tr.result),
+                is_error: tr.isError || false,
+              }));
+              this.messages.push({
+                role: 'user',
+                content: toolResults,
+              });
+            }
+          } else {
+            // Simple text response
+            this.messages.push({
+              role: 'assistant',
+              content: [{ type: 'text', text: msg.content || '' }],
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Session] Failed to load messages from database:', error);
+    }
+  }
+
+  /**
+   * Save a message to the database
+   */
+  private async saveMessage(
+    role: 'user' | 'assistant',
+    content: string | null,
+    toolCalls?: ToolCall[],
+    toolResults?: ToolResult[],
+    stopReason?: string
+  ): Promise<void> {
+    if (!this.conversationDbId) return;
+
+    try {
+      await db.insert(aiConversationMessages).values({
+        conversationId: this.conversationDbId,
+        role,
+        content,
+        toolCalls: toolCalls && toolCalls.length > 0 ? toolCalls : null,
+        toolResults: toolResults && toolResults.length > 0 ? toolResults : null,
+        stopReason,
+      });
+
+      // Update conversation metadata
+      await db
+        .update(aiConversations)
+        .set({
+          lastMessageAt: new Date(),
+          messageCount: this.messages.length,
+          updatedAt: new Date(),
+        })
+        .where(eq(aiConversations.id, this.conversationDbId));
+    } catch (error) {
+      console.error('[Session] Failed to save message:', error);
+    }
   }
 
   private getDefaultSystemPrompt(): string {
@@ -88,11 +259,17 @@ export class ConversationSession {
    * Send a message and get a response, handling tool calls automatically
    */
   async chat(userMessage: string): Promise<ChatResponse> {
+    // Ensure session is initialized
+    await this.initialize();
+
     // Add user message to history
     this.messages.push({
       role: 'user',
       content: userMessage,
     });
+
+    // Save user message to database
+    await this.saveMessage('user', userMessage);
 
     // Get tool definitions
     const tools = getToolDefinitions();
@@ -147,6 +324,7 @@ export class ConversationSession {
           allToolResults.push({
             toolUseId: toolUse.id,
             result,
+            isError: false,
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -194,6 +372,15 @@ export class ConversationSession {
       content: response.content,
     });
 
+    // Save assistant response to database (with all tool calls and results)
+    await this.saveMessage(
+      'assistant',
+      assistantMessage,
+      allToolCalls.length > 0 ? allToolCalls : undefined,
+      allToolResults.length > 0 ? allToolResults : undefined,
+      response.stop_reason || 'end_turn'
+    );
+
     return {
       message: assistantMessage,
       toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined,
@@ -210,10 +397,41 @@ export class ConversationSession {
   }
 
   /**
-   * Clear conversation history
+   * Clear conversation history and archive the conversation
    */
-  clearHistory(): void {
+  async clearHistory(): Promise<void> {
     this.messages = [];
+
+    // Archive the conversation in database
+    if (this.conversationDbId) {
+      try {
+        await db
+          .update(aiConversations)
+          .set({ status: 'archived', updatedAt: new Date() })
+          .where(eq(aiConversations.id, this.conversationDbId));
+        console.log(`[Session] Archived conversation ${this.sessionId}`);
+      } catch (error) {
+        console.error('[Session] Failed to archive conversation:', error);
+      }
+    }
+
+    // Reset for a fresh conversation
+    this.conversationDbId = null;
+    this.isInitialized = false;
+  }
+
+  /**
+   * Get the database ID for this conversation
+   */
+  getConversationId(): string | null {
+    return this.conversationDbId;
+  }
+
+  /**
+   * Get session ID
+   */
+  getSessionId(): string {
+    return this.sessionId;
   }
 }
 
@@ -276,7 +494,7 @@ class SessionManager {
     }
   }
 
-  getOrCreateSession(sessionId: string, organizationId: string): ConversationSession {
+  getOrCreateSession(sessionId: string, organizationId: string, userInfo: UserInfo = {}): ConversationSession {
     const existing = this.sessions.get(sessionId);
 
     if (existing) {
@@ -304,8 +522,8 @@ class SessionManager {
       }
     }
 
-    // Create new session
-    const session = new ConversationSession(organizationId);
+    // Create new session with sessionId and userInfo for persistence
+    const session = new ConversationSession(organizationId, sessionId, userInfo);
     const now = Date.now();
 
     this.sessions.set(sessionId, {
