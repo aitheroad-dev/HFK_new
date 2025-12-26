@@ -7,6 +7,7 @@ export * from './payments.js';
 export * from './events.js';
 export * from './escalations.js';
 export * from './conversations.js';
+export * from './documents.js';
 
 // Re-export for convenience
 export { organizations } from './organizations.js';
@@ -17,3 +18,4 @@ export { payments } from './payments.js';
 export { events, eventRegistrations } from './events.js';
 export { escalations, communications } from './escalations.js';
 export { aiConversations, aiConversationMessages } from './conversations.js';
+export { aiDocuments } from './documents.js';

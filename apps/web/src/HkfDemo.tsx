@@ -8,6 +8,7 @@ import { Interviews } from "@/pages/Interviews";
 import { Payments } from "@/pages/Payments";
 import { Events } from "@/pages/Events";
 import { Conversations } from "@/pages/Conversations";
+import { Documents } from "@/pages/Documents";
 import { Login } from "@/pages/Login";
 import { PersonDetail } from "@/components/hkf/PersonDetail";
 import { PersonForm } from "@/components/hkf/PersonForm";
@@ -30,7 +31,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations" | "documents";
 
 function LoadingScreen() {
   return (
@@ -98,6 +99,7 @@ function AuthenticatedApp({ currentPage, onNavigate, selectedPerson, onSelectPer
             // For now just navigate to people - could enhance to auto-select
             onNavigate("people");
           }} />}
+          {currentPage === "documents" && <Documents />}
         </div>
         {selectedPerson && (
           <PersonDetail

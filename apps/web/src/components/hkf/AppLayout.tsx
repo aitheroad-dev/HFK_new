@@ -7,6 +7,7 @@ import {
   CreditCard,
   Mail,
   MessageSquare,
+  FileText,
   Settings,
   Search,
   LogOut,
@@ -38,7 +39,7 @@ import { OfflineIndicator } from "./OfflineIndicator";
 import { InstallPrompt } from "./InstallPrompt";
 import { PWAReloadPrompt } from "./PWAReloadPrompt";
 
-type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations";
+type Page = "dashboard" | "people" | "programs" | "interviews" | "payments" | "events" | "conversations" | "documents";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -59,6 +60,7 @@ const navigationItems = {
     { label: "תשלומים", icon: CreditCard, page: "payments" as Page },
     { label: "הודעות", icon: Mail, page: "events" as Page },
     { label: "שיחות AI", icon: MessageSquare, page: "conversations" as Page },
+    { label: "מסמכים", icon: FileText, page: "documents" as Page },
   ],
 };
 

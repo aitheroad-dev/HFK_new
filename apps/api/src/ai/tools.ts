@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import { db, people, programs, interviews, enrollments, payments, events, eventRegistrations, escalations, communications } from '@generic-ai-crm/db';
-import { eq, and, ilike, or, gte, lte, sql, count } from 'drizzle-orm';
+import { eq, and, ilike, or, gte, lte, sql, count, desc } from 'drizzle-orm';
 import { createCalendarEvent as googleCreateCalendarEvent, checkCalendarStatus } from '../integrations/calendar.js';
 import { sendEmail, sendBulkEmail, emailTemplates, checkEmailStatus } from '../integrations/email.js';
+import { generateDocument, type GenerateDocumentInput } from './document-generator.js';
 
 /**
  * AI Tool definitions for JARVIS
@@ -232,6 +233,26 @@ export const calculateEngagementScoreSchema = z.object({
   personId: z.string().uuid().describe('UUID of the person to calculate score for'),
 });
 
+export const createDocumentSchema = z.object({
+  title: z.string().describe('Document title in Hebrew (e.g., "דוח תשלומים דצמבר 2024")'),
+  description: z.string().optional().describe('Brief description of document contents'),
+  documentType: z.enum(['payment_report', 'people_list', 'program_report', 'interview_schedule', 'event_summary', 'custom_report']).describe('Type of document to generate'),
+  format: z.enum(['pdf', 'csv']).describe('Output format - PDF for printable reports, CSV for spreadsheets'),
+  dataSource: z.enum(['payments', 'people', 'programs', 'interviews', 'events', 'custom']).describe('Which data to include in the document'),
+  filters: z.object({
+    status: z.string().optional().describe('Filter by status'),
+    fromDate: z.string().optional().describe('Filter from this date (ISO 8601)'),
+    toDate: z.string().optional().describe('Filter until this date (ISO 8601)'),
+    personId: z.string().uuid().optional().describe('Filter by person'),
+    programId: z.string().uuid().optional().describe('Filter by program'),
+  }).optional().describe('Filters to apply to the data'),
+  customData: z.array(z.record(z.unknown())).optional().describe('For custom_report type: provide the data directly'),
+  customColumns: z.array(z.object({
+    key: z.string().describe('Data field key'),
+    label: z.string().describe('Column header label in Hebrew'),
+  })).optional().describe('Custom column definitions for the document'),
+});
+
 // Type exports
 export type SearchPeopleInput = z.infer<typeof searchPeopleSchema>;
 export type GetPersonInput = z.infer<typeof getPersonSchema>;
@@ -258,6 +279,7 @@ export type CreateCalendarEventInput = z.infer<typeof createCalendarEventSchema>
 export type UploadFileInput = z.infer<typeof uploadFileSchema>;
 export type EscalateToHumanInput = z.infer<typeof escalateToHumanSchema>;
 export type CalculateEngagementScoreInput = z.infer<typeof calculateEngagementScoreSchema>;
+export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 
 // ============================================================================
 // Tool Definitions for Claude API
@@ -917,6 +939,61 @@ export function getToolDefinitions(): Tool[] {
           personId: { type: 'string', description: 'UUID of the person to calculate score for' },
         },
         required: ['personId'],
+      },
+    },
+    {
+      name: 'create_document',
+      description: 'Generate a document (PDF or CSV) from CRM data. Use this to create reports, export data, or generate printable documents. The document is saved and a download link is provided.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          title: { type: 'string', description: 'Document title in Hebrew (e.g., "דוח תשלומים דצמבר 2024")' },
+          description: { type: 'string', description: 'Brief description of document contents' },
+          documentType: {
+            type: 'string',
+            enum: ['payment_report', 'people_list', 'program_report', 'interview_schedule', 'event_summary', 'custom_report'],
+            description: 'Type of document to generate',
+          },
+          format: {
+            type: 'string',
+            enum: ['pdf', 'csv'],
+            description: 'Output format - PDF for printable reports, CSV for spreadsheets',
+          },
+          dataSource: {
+            type: 'string',
+            enum: ['payments', 'people', 'programs', 'interviews', 'events', 'custom'],
+            description: 'Which data to include in the document',
+          },
+          filters: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', description: 'Filter by status' },
+              fromDate: { type: 'string', description: 'Filter from this date (ISO 8601)' },
+              toDate: { type: 'string', description: 'Filter until this date (ISO 8601)' },
+              personId: { type: 'string', description: 'Filter by person UUID' },
+              programId: { type: 'string', description: 'Filter by program UUID' },
+            },
+            description: 'Filters to apply to the data',
+          },
+          customData: {
+            type: 'array',
+            items: { type: 'object' },
+            description: 'For custom_report type: provide the data directly as array of objects',
+          },
+          customColumns: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                key: { type: 'string', description: 'Data field key' },
+                label: { type: 'string', description: 'Column header label in Hebrew' },
+              },
+              required: ['key', 'label'],
+            },
+            description: 'Custom column definitions for the document',
+          },
+        },
+        required: ['title', 'documentType', 'format', 'dataSource'],
       },
     },
   ];
@@ -2270,6 +2347,258 @@ async function handleCalculateEngagementScore(input: CalculateEngagementScoreInp
   };
 }
 
+async function handleCreateDocument(input: CreateDocumentInput, organizationId: string) {
+  const {
+    title,
+    description,
+    documentType,
+    format,
+    dataSource,
+    filters,
+    customData,
+    customColumns,
+  } = input;
+
+  // Fetch data based on dataSource
+  let data: Record<string, unknown>[] = [];
+
+  try {
+    switch (dataSource) {
+      case 'payments': {
+        const conditions = [eq(payments.organizationId, organizationId)];
+        if (filters?.status) {
+          conditions.push(eq(payments.status, filters.status as 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled'));
+        }
+        if (filters?.personId) {
+          conditions.push(eq(payments.personId, filters.personId));
+        }
+        if (filters?.programId) {
+          conditions.push(eq(payments.programId, filters.programId));
+        }
+        if (filters?.fromDate) {
+          conditions.push(gte(payments.createdAt, new Date(filters.fromDate)));
+        }
+        if (filters?.toDate) {
+          conditions.push(lte(payments.createdAt, new Date(filters.toDate)));
+        }
+
+        const paymentResults = await db
+          .select()
+          .from(payments)
+          .where(and(...conditions))
+          .orderBy(desc(payments.createdAt))
+          .limit(1000);
+
+        // Enrich with person names
+        for (const payment of paymentResults) {
+          const personResult = await db
+            .select()
+            .from(people)
+            .where(eq(people.id, payment.personId))
+            .limit(1);
+
+          data.push({
+            ...payment,
+            personName: personResult[0] ? `${personResult[0].firstName} ${personResult[0].lastName}` : 'Unknown',
+            amount: `${(payment.amount / 100).toFixed(2)} ${payment.currency}`,
+            paidAt: payment.paidAt ? new Date(payment.paidAt).toLocaleDateString('he-IL') : '-',
+          });
+        }
+        break;
+      }
+
+      case 'people': {
+        const conditions = [eq(people.organizationId, organizationId)];
+        if (filters?.status) {
+          conditions.push(eq(people.status, filters.status as 'active' | 'inactive' | 'pending' | 'archived'));
+        }
+
+        const peopleResults = await db
+          .select()
+          .from(people)
+          .where(and(...conditions))
+          .orderBy(desc(people.createdAt))
+          .limit(1000);
+
+        data = peopleResults.map(p => ({
+          ...p,
+          createdAt: new Date(p.createdAt).toLocaleDateString('he-IL'),
+        }));
+        break;
+      }
+
+      case 'programs': {
+        const conditions = [eq(programs.organizationId, organizationId)];
+
+        const programResults = await db
+          .select()
+          .from(programs)
+          .where(and(...conditions))
+          .limit(100);
+
+        // Get enrollment counts
+        for (const program of programResults) {
+          const enrollmentResults = await db
+            .select()
+            .from(enrollments)
+            .where(and(eq(enrollments.programId, program.id), eq(enrollments.organizationId, organizationId)));
+
+          const statusFilter = filters?.status;
+          const filteredEnrollments = statusFilter
+            ? enrollmentResults.filter(e => e.status === statusFilter)
+            : enrollmentResults;
+
+          for (const enrollment of filteredEnrollments) {
+            const personResult = await db
+              .select()
+              .from(people)
+              .where(eq(people.id, enrollment.personId))
+              .limit(1);
+
+            data.push({
+              programName: program.name,
+              personName: personResult[0] ? `${personResult[0].firstName} ${personResult[0].lastName}` : 'Unknown',
+              status: enrollment.status,
+              appliedAt: enrollment.appliedAt ? new Date(enrollment.appliedAt).toLocaleDateString('he-IL') : '-',
+              enrolledAt: enrollment.enrolledAt ? new Date(enrollment.enrolledAt).toLocaleDateString('he-IL') : '-',
+            });
+          }
+        }
+        break;
+      }
+
+      case 'interviews': {
+        const conditions = [eq(interviews.organizationId, organizationId)];
+        if (filters?.status) {
+          conditions.push(eq(interviews.status, filters.status as 'scheduled' | 'completed' | 'cancelled' | 'no_show'));
+        }
+        if (filters?.personId) {
+          conditions.push(eq(interviews.personId, filters.personId));
+        }
+        if (filters?.programId) {
+          conditions.push(eq(interviews.programId, filters.programId));
+        }
+        if (filters?.fromDate) {
+          conditions.push(gte(interviews.scheduledAt, new Date(filters.fromDate)));
+        }
+        if (filters?.toDate) {
+          conditions.push(lte(interviews.scheduledAt, new Date(filters.toDate)));
+        }
+
+        const interviewResults = await db
+          .select()
+          .from(interviews)
+          .where(and(...conditions))
+          .orderBy(desc(interviews.scheduledAt))
+          .limit(1000);
+
+        for (const interview of interviewResults) {
+          const personResult = await db
+            .select()
+            .from(people)
+            .where(eq(people.id, interview.personId))
+            .limit(1);
+
+          const programResult = await db
+            .select()
+            .from(programs)
+            .where(eq(programs.id, interview.programId))
+            .limit(1);
+
+          data.push({
+            ...interview,
+            personName: personResult[0] ? `${personResult[0].firstName} ${personResult[0].lastName}` : 'Unknown',
+            programName: programResult[0]?.name || 'Unknown',
+            scheduledAt: new Date(interview.scheduledAt).toLocaleDateString('he-IL'),
+          });
+        }
+        break;
+      }
+
+      case 'events': {
+        const conditions = [eq(events.organizationId, organizationId)];
+        if (filters?.status) {
+          conditions.push(eq(events.status, filters.status as 'draft' | 'published' | 'cancelled' | 'completed'));
+        }
+        if (filters?.fromDate) {
+          conditions.push(gte(events.startsAt, new Date(filters.fromDate)));
+        }
+        if (filters?.toDate) {
+          conditions.push(lte(events.startsAt, new Date(filters.toDate)));
+        }
+
+        const eventResults = await db
+          .select()
+          .from(events)
+          .where(and(...conditions))
+          .orderBy(desc(events.startsAt))
+          .limit(1000);
+
+        data = eventResults.map(e => ({
+          ...e,
+          startsAt: new Date(e.startsAt).toLocaleDateString('he-IL'),
+        }));
+        break;
+      }
+
+      case 'custom': {
+        if (!customData) {
+          return { error: 'customData is required for custom dataSource' };
+        }
+        data = customData;
+        break;
+      }
+
+      default:
+        return { error: `Unknown dataSource: ${dataSource}` };
+    }
+
+    if (data.length === 0) {
+      return {
+        success: false,
+        message: 'No data found matching the specified filters',
+        documentId: null,
+      };
+    }
+
+    // Generate the document
+    const result = await generateDocument({
+      title,
+      description,
+      documentType,
+      format,
+      data,
+      columns: customColumns,
+      options: { filters },
+    }, organizationId);
+
+    if (result.success) {
+      return {
+        success: true,
+        message: `Document "${title}" created successfully`,
+        documentId: result.documentId,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+        downloadUrl: result.downloadUrl,
+        recordCount: data.length,
+      };
+    } else {
+      return {
+        success: false,
+        message: result.error || 'Failed to generate document',
+        documentId: null,
+      };
+    }
+  } catch (error) {
+    console.error('[CreateDocument] Error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      documentId: null,
+    };
+  }
+}
+
 // ============================================================================
 // Tool Execution Router
 // ============================================================================
@@ -2300,7 +2629,8 @@ export type ToolName =
   | 'create_calendar_event'
   | 'upload_file'
   | 'escalate_to_human'
-  | 'calculate_engagement_score';
+  | 'calculate_engagement_score'
+  | 'create_document';
 
 export async function executeToolCall(
   toolName: ToolName,
@@ -2408,6 +2738,10 @@ export async function executeToolCall(
     case 'calculate_engagement_score': {
       const validated = calculateEngagementScoreSchema.parse(input);
       return handleCalculateEngagementScore(validated, organizationId);
+    }
+    case 'create_document': {
+      const validated = createDocumentSchema.parse(input);
+      return handleCreateDocument(validated, organizationId);
     }
     default:
       throw new Error(`Unknown tool: ${toolName}`);
